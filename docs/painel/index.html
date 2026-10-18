@@ -118,7 +118,7 @@ details.final summary{cursor:pointer;color:var(--muted);font-size:14px;margin-bo
     <div class="col"><h2>Novos <span class="cont" id="cNovos">0</span></h2><div id="lNovos"></div></div>
     <div class="col"><h2>Em preparo <span class="cont" id="cPreparo">0</span></h2><div id="lPreparo"></div></div>
     <div class="col">
-      <h2>Prontos e a caminho <span class="cont" id="cProntos">0</span></h2><div id="lProntos"></div>
+      <h2>Saiu para entrega / pronto <span class="cont" id="cProntos">0</span></h2><div id="lProntos"></div>
       <details class="final"><summary id="resumoFinal">Finalizados hoje</summary><div id="lFinal"></div></details>
     </div>
   </main>
@@ -146,7 +146,7 @@ function criarDemo() {
   const min = (m) => new Date(Date.now() - m * 60000).toISOString();
   demoDados = [
     { id: 103, codigo: "demo103", criado_em: min(4), status: "recebido", tipo_entrega: "entrega",
-      endereco: "Rua 5, nº 120 — Setor Cristina — Ref.: casa de muro azul", forma_pagamento: "dinheiro", troco_para: 100,
+      endereco: "Rua 5, nº 120 — Jardim Marista — Ref.: casa de muro azul", forma_pagamento: "dinheiro", troco_para: 100,
       subtotal: 55.98, taxa_entrega: 0, total: 55.98, origem: "site", observacoes: "Interfone quebrado, ligar ao chegar",
       clientes: { nome: "Mariana Souza", telefone: "5562900000001" },
       itens_pedido: [
@@ -170,7 +170,7 @@ function criarDemo() {
   ];
   setTimeout(() => {
     demoDados.unshift({ id: 104, codigo: "demo104", criado_em: new Date().toISOString(), status: "recebido", tipo_entrega: "entrega",
-      endereco: "Rua 12, Qd 8, Lt 3 — Setor Cristina", forma_pagamento: "dinheiro", troco_para: 50, subtotal: 44.98,
+      endereco: "Rua 12, Qd 8, Lt 3 — Jardim Marista", forma_pagamento: "dinheiro", troco_para: 50, subtotal: 44.98,
       taxa_entrega: 0, total: 44.98, origem: "site", observacoes: null, clientes: { nome: "Fernanda Alves", telefone: "5562900000005" },
       itens_pedido: [
         { descricao: "Pizza Grande Carne Seca / Frango Cheddar", quantidade: 1, preco_unitario: 39.99, observacao: null },
@@ -253,7 +253,6 @@ function botoes(p) {
   if (p.status === "aguardando_pagamento") b.push(`<button class="btn ok" data-st="recebido" data-id="${p.id}">Pix confirmado</button>`);
   if (p.status === "recebido") b.push(`<button class="btn prim" data-st="em_preparo" data-id="${p.id}">Em preparo</button>`);
   if (p.status === "em_preparo") b.push(`<button class="btn prim" data-st="${pronto[0]}" data-id="${p.id}">${pronto[1]}</button>`);
-  if (p.status === "saiu_entrega" || p.status === "pronto_retirada") b.push(`<button class="btn ok" data-st="entregue" data-id="${p.id}">Entregue</button>`);
   b.push(`<button class="btn" data-imprimir="${p.id}">Imprimir</button>`);
   b.push(`<a class="btn" style="text-decoration:none;color:var(--ok)" href="${linkAviso(p)}" target="_blank" rel="noopener">Avisar cliente</a>`);
   if (!["entregue", "cancelado"].includes(p.status)) b.push(`<button class="btn perigo" data-st="cancelado" data-id="${p.id}">Cancelar</button>`);
@@ -291,7 +290,7 @@ function desenhar(novos) {
     lProntos: pedidos.filter((p) => ["saiu_entrega", "pronto_retirada"].includes(p.status)),
     lFinal: pedidos.filter((p) => ["entregue", "cancelado"].includes(p.status)),
   };
-  const vazio = { lNovos:"Nenhum pedido novo. Eles aparecem aqui sozinhos.", lPreparo:"Nada no forno agora.", lProntos:"Nenhum pedido pronto.", lFinal:"Nenhum pedido finalizado." };
+  const vazio = { lNovos:"Nenhum pedido novo. Eles aparecem aqui sozinhos.", lPreparo:"Nada no forno agora.", lProntos:"Nenhum pedido saiu ainda.", lFinal:"Nenhum pedido finalizado." };
   for (const [id, lista] of Object.entries(grupos)) {
     const ordenada = id === "lFinal" ? lista : lista.slice().sort((a, b) => a.id - b.id);
     $(id).innerHTML = ordenada.length ? ordenada.map((p) => cartao(p, novos.has(p.id))).join("") : `<p class="vazio">${vazio[id]}</p>`;
@@ -316,7 +315,7 @@ function linkAviso(p) {
     recebido: `Olá${nome ? ", " + nome : ""}! Recebemos o seu pedido nº ${p.id} na A Forja Pizzaria.${taxa}\nTotal: ${brl(p.total)}`,
     em_preparo: `Seu pedido nº ${p.id} já está no forno! 🍕`,
     saiu_entrega: `Seu pedido nº ${p.id} saiu para entrega! Logo chega aí.`,
-    pronto_retirada: `Seu pedido nº ${p.id} está pronto para retirada no balcão: Avenida Rui Barbosa, Qd 06, Lote 01, Setor Cristina.`,
+    pronto_retirada: `Seu pedido nº ${p.id} está pronto para retirada no balcão: Av. Rui Barbosa, 781 - Jardim Marista, Trindade - GO.`,
     entregue: `Obrigado pela preferência, ${nome || "volte sempre"}! Bom apetite. 🍕`,
     cancelado: `Seu pedido nº ${p.id} foi cancelado. Se tiver dúvidas, é só responder esta mensagem.`,
   };
