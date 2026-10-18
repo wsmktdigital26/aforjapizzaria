@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simulador do bot — A Forja Pizzaria</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --brasa:#C2410C; --brasa-claro:#FDEBDD; --carvao:#1F1B18; --cinza:#6B625B;
+  --papel:#F6F3EF; --cartao:#FFFFFF; --linha:#E4DDD5; --bot:#FFFFFF; --eu:#E3F1DF; --eu-texto:#1F3B1A;
+  --erro:#B42318; --sombra:none;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --brasa:#F97316; --brasa-claro:#3A2316; --carvao:#F2ECE6; --cinza:#A99F97;
+    --papel:#171412; --cartao:#211D1A; --linha:#3A332E; --bot:#2A2522; --eu:#24402A; --eu-texto:#DDF2D6; --erro:#F97066; }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--papel);color:var(--carvao);font:15px/1.5 Barlow,system-ui,sans-serif}
+header{padding:20px 24px 8px;max-width:1100px;margin:0 auto}
+h1{font:700 34px/1 "Barlow Condensed",sans-serif;margin:0;letter-spacing:.5px}
+h1 span{color:var(--brasa)}
+.sub{color:var(--cinza);margin:6px 0 0}
+details{max-width:1100px;margin:12px auto 0;padding:0 24px}
+summary{cursor:pointer;font-weight:600;color:var(--brasa);padding:6px 0}
+.cfg{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px 16px;background:var(--cartao);border:1px solid var(--linha);border-radius:12px;padding:14px;margin-top:6px}
+.cfg label{display:flex;flex-direction:column;font-size:13px;color:var(--cinza);gap:4px}
+.cfg label.chk{flex-direction:row;align-items:center;gap:8px;color:var(--carvao);font-size:14px}
+input[type=text],input[type=password],input[type=number]{font:inherit;padding:8px 10px;border:1px solid var(--linha);border-radius:8px;background:var(--papel);color:var(--carvao)}
+main{max-width:1100px;margin:16px auto 32px;padding:0 24px;display:grid;grid-template-columns:3fr 2fr;gap:20px}
+@media (max-width:800px){main{grid-template-columns:1fr}}
+.tel{background:var(--cartao);border:1px solid var(--linha);border-radius:22px;display:flex;flex-direction:column;height:72vh;min-height:480px;overflow:hidden}
+.topo{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--linha)}
+.av{width:38px;height:38px;border-radius:50%;background:var(--brasa);color:#fff;display:grid;place-items:center;font:700 16px "Barlow Condensed",sans-serif}
+.topo b{display:block;font-weight:600}
+.topo small{color:var(--cinza)}
+.limpar{margin-left:auto}
+.chat{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:8px;background:var(--papel)}
+.vazio{margin:auto;text-align:center;color:var(--cinza);max-width:260px;font-size:14px}
+.b{max-width:85%;padding:8px 11px;border-radius:12px;white-space:pre-wrap;word-wrap:break-word;font-size:14.5px}
+.b.bot{align-self:flex-start;background:var(--bot);border:1px solid var(--linha);border-top-left-radius:4px}
+.b.eu{align-self:flex-end;background:var(--eu);color:var(--eu-texto);border-top-right-radius:4px}
+.b.erro{align-self:center;color:var(--erro);background:transparent;font-size:13px;text-align:center}
+.b img{display:block;max-width:100%;border-radius:8px;margin-bottom:6px}
+.ops{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.op{font:inherit;font-size:14px;font-weight:500;color:var(--brasa);background:transparent;border:1px solid var(--linha);border-radius:8px;padding:7px 10px;cursor:pointer;text-align:center}
+.op:hover:not(:disabled){background:var(--brasa-claro)}
+.op:disabled{opacity:.45;cursor:default}
+.op.escolhido{opacity:1;background:var(--brasa-claro)}
+.linha-lista{text-align:left}
+.linha-lista small{display:block;color:var(--cinza);font-weight:400}
+.digitando{align-self:flex-start;color:var(--cinza);font-size:13px;font-style:italic}
+.barra{display:flex;gap:8px;padding:10px;border-top:1px solid var(--linha);flex-wrap:wrap}
+.barra input{flex:1;min-width:140px}
+button.acao{font:inherit;font-weight:600;border:0;border-radius:8px;padding:8px 14px;background:var(--brasa);color:#fff;cursor:pointer}
+button.sec{font:inherit;font-size:13px;border:1px solid var(--linha);border-radius:8px;padding:7px 10px;background:transparent;color:var(--carvao);cursor:pointer}
+button:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid var(--brasa);outline-offset:2px}
+</style>
+</head>
+<body>
+<header>
+  <h1>A Forja <span>·</span> simulador do bot</h1>
+  <p class="sub">Teste o pedido como cliente à esquerda e acompanhe a cozinha à direita. Nada é enviado pelo WhatsApp.</p>
+</header>
+
+<details id="painelCfg">
+  <summary>Configurações do simulador</summary>
+  <div class="cfg">
+    <label>Endereço da função
+      <input type="text" id="cfgUrl" value="https://bgwdnwzzltbekhfzcawm.supabase.co/functions/v1/whatsapp-webhook">
+    </label>
+    <label>Senha (a mesma do WHATSAPP_VERIFY_TOKEN)
+      <input type="password" id="cfgToken" placeholder="aforja2026">
+    </label>
+    <label>Telefone do cliente de teste
+      <input type="text" id="cfgTel" value="5562900000001">
+    </label>
+    <label>Nome do cliente
+      <input type="text" id="cfgNome" value="Cliente Teste">
+    </label>
+    <label>Latitude enviada como localização
+      <input type="number" step="any" id="cfgLat" value="-16.6500">
+    </label>
+    <label>Longitude enviada como localização
+      <input type="number" step="any" id="cfgLng" value="-49.4900">
+    </label>
+    <label class="chk"><input type="checkbox" id="cfgHorario" checked> Ignorar horário de funcionamento</label>
+  </div>
+</details>
+
+<main>
+  <section class="tel" aria-label="Celular do cliente">
+    <div class="topo">
+      <div class="av">AF</div>
+      <div><b>A Forja Pizzaria</b><small>Visão do cliente</small></div>
+      <button class="sec limpar" id="limparCli">Limpar conversa</button>
+    </div>
+    <div class="chat" id="chatCli" aria-live="polite">
+      <p class="vazio" id="vazioCli">Digite “oi” abaixo para começar uma conversa com o bot.</p>
+    </div>
+    <div class="barra">
+      <input type="text" id="txtCli" placeholder="oi" autocomplete="off">
+      <button class="acao" id="envCli">Enviar</button>
+      <button class="sec" id="locCli">Enviar localização</button>
+      <button class="sec" id="compCli">Enviar comprovante</button>
+    </div>
+  </section>
+
+  <section class="tel" aria-label="Celular da cozinha">
+    <div class="topo">
+      <div class="av">CZ</div>
+      <div><b>Cozinha</b><small id="telCozTxt">Recebe os pedidos confirmados</small></div>
+      <button class="sec limpar" id="limparCoz">Limpar</button>
+    </div>
+    <div class="chat" id="chatCoz" aria-live="polite">
+      <p class="vazio" id="vazioCoz">Os pedidos aparecem aqui depois que o cliente confirmar. É preciso ter um telefone da cozinha cadastrado no banco.</p>
+    </div>
+  </section>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const campos = ["cfgUrl","cfgToken","cfgTel","cfgNome","cfgLat","cfgLng"];
+try {
+  const salvo = JSON.parse(localStorage.getItem("simAForja") || "{}");
+  campos.forEach((c) => { if (salvo[c] != null) $(c).value = salvo[c]; });
+  if (salvo.cfgHorario != null) $("cfgHorario").checked = salvo.cfgHorario;
+} catch (e) {}
+function salvarCfg() {
+  const d = {}; campos.forEach((c) => d[c] = $(c).value); d.cfgHorario = $("cfgHorario").checked;
+  try { localStorage.setItem("simAForja", JSON.stringify(d)); } catch (e) {}
+}
+document.querySelectorAll(".cfg input").forEach((i) => i.addEventListener("change", salvarCfg));
+if (!$("cfgToken").value) $("painelCfg").open = true;
+
+const digitos = (s) => String(s || "").replace(/\D/g, "");
+const mesmoNumero = (a, b) => { const x = digitos(a), y = digitos(b); return x && y && x.slice(0,4) === y.slice(0,4) && x.slice(-8) === y.slice(-8); };
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]));
+const formata = (s) => esc(s).replace(/\*(.+?)\*/g, "<b>$1</b>");
+
+let telCozinha = null;
+const chats = { cliente: $("chatCli"), cozinha: $("chatCoz") };
+
+function adicionar(painel, html, classe) {
+  const vazio = painel === "cliente" ? $("vazioCli") : $("vazioCoz");
+  if (vazio) vazio.remove();
+  const d = document.createElement("div");
+  d.className = "b " + classe;
+  d.innerHTML = html;
+  chats[painel].appendChild(d);
+  chats[painel].scrollTop = chats[painel].scrollHeight;
+  return d;
+}
+
+function botaoOpcao(rotulo, aoClicar, extraHtml) {
+  const b = document.createElement("button");
+  b.className = "op" + (extraHtml ? " linha-lista" : "");
+  b.innerHTML = esc(rotulo) + (extraHtml || "");
+  b.addEventListener("click", () => {
+    b.closest(".b").querySelectorAll("button").forEach((x) => x.disabled = true);
+    b.classList.add("escolhido");
+    aoClicar();
+  });
+  return b;
+}
+
+function mostrarDoBot(painel, m) {
+  if (m.type === "text") return adicionar(painel, formata(m.text.body), "bot");
+  if (m.type === "image") {
+    return adicionar(painel, `<img src="${esc(m.image.link)}" alt="Cardápio">${formata(m.image.caption || "")}`, "bot");
+  }
+  if (m.type === "interactive") {
+    const it = m.interactive;
+    const d = adicionar(painel, formata(it.body?.text || ""), "bot");
+    const ops = document.createElement("div"); ops.className = "ops"; d.appendChild(ops);
+    if (it.type === "button") {
+      it.action.buttons.forEach((bt) => ops.appendChild(botaoOpcao(bt.reply.title, () =>
+        enviar(painel, { type: "interactive", interactive: { type: "button_reply", button_reply: { id: bt.reply.id, title: bt.reply.title } } }, bt.reply.title))));
+    } else if (it.type === "list") {
+      const abrir = document.createElement("button");
+      abrir.className = "op"; abrir.textContent = it.action.button;
+      const linhas = document.createElement("div"); linhas.className = "ops"; linhas.hidden = true;
+      abrir.addEventListener("click", () => { linhas.hidden = !linhas.hidden; });
+      ops.appendChild(abrir); ops.appendChild(linhas);
+      it.action.sections.forEach((s) => s.rows.forEach((r) => linhas.appendChild(botaoOpcao(r.title, () =>
+        enviar(painel, { type: "interactive", interactive: { type: "list_reply", list_reply: { id: r.id, title: r.title } } }, r.title),
+        r.description ? `<small>${esc(r.description)}</small>` : ""))));
+    } else if (it.type === "location_request_message") {
+      ops.appendChild(botaoOpcao("Enviar localização", () => enviarLocalizacao()));
+    }
+    chats[painel].scrollTop = chats[painel].scrollHeight;
+    return d;
+  }
+  adicionar(painel, esc("[mensagem do tipo " + m.type + "]"), "bot");
+}
+
+async function enviar(painel, mensagem, rotulo) {
+  salvarCfg();
+  const url = $("cfgUrl").value.trim();
+  const token = $("cfgToken").value.trim();
+  if (!token) { $("painelCfg").open = true; adicionar(painel, "Informe a senha do simulador nas configurações.", "erro"); return; }
+  const telefone = painel === "cliente" ? digitos($("cfgTel").value) : telCozinha;
+  if (!telefone) { adicionar(painel, "A cozinha ainda não recebeu nenhum pedido.", "erro"); return; }
+
+  adicionar(painel, esc(rotulo), "eu");
+  const ind = document.createElement("div"); ind.className = "digitando"; ind.textContent = "digitando…";
+  chats[painel].appendChild(ind);
+
+  try {
+    const r = await fetch(url + "?simulador=1", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-simulador-token": token },
+      body: JSON.stringify({
+        telefone, nome: painel === "cliente" ? $("cfgNome").value : "Cozinha",
+        ignorarHorario: $("cfgHorario").checked,
+        mensagem: { id: crypto.randomUUID(), ...mensagem },
+      }),
+    });
+    const dados = await r.json().catch(() => ({}));
+    ind.remove();
+    if (!r.ok) { adicionar(painel, dados.erro || `Erro ${r.status} ao falar com a função.`, "erro"); }
+    for (const m of dados.mensagens || []) {
+      const paraCliente = mesmoNumero(m.para, $("cfgTel").value);
+      if (!paraCliente) { telCozinha = digitos(m.para); $("telCozTxt").textContent = "+" + telCozinha; }
+      mostrarDoBot(paraCliente ? "cliente" : "cozinha", m);
+    }
+  } catch (e) {
+    ind.remove();
+    adicionar(painel, "Não foi possível conectar à função. Confira o endereço e se a versão 3 foi publicada.", "erro");
+  }
+}
+
+function enviarLocalizacao() {
+  const lat = Number($("cfgLat").value), lng = Number($("cfgLng").value);
+  enviar("cliente", { type: "location", location: { latitude: lat, longitude: lng, name: "", address: "" } }, "📍 Localização enviada");
+}
+
+function enviarTexto() {
+  const t = $("txtCli").value.trim();
+  if (!t) return;
+  $("txtCli").value = "";
+  enviar("cliente", { type: "text", text: { body: t } }, t);
+}
+$("envCli").addEventListener("click", enviarTexto);
+$("txtCli").addEventListener("keydown", (e) => { if (e.key === "Enter") enviarTexto(); });
+$("locCli").addEventListener("click", enviarLocalizacao);
+$("compCli").addEventListener("click", () => enviar("cliente", { type: "image", image: { id: "comprovante-simulado" } }, "🧾 Comprovante do Pix"));
+$("limparCli").addEventListener("click", () => { chats.cliente.innerHTML = ""; });
+$("limparCoz").addEventListener("click", () => { chats.cozinha.innerHTML = ""; });
+</script>
+</body>
+</html>

@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Painel da cozinha · A Forja Pizzaria</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Nunito+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F4EFE9; --surface:#FFFFFF; --text:#2A1A12; --muted:#76604F; --line:#E5D9CC;
+  --ember:#C43E0C; --ember-soft:#FCE6DA; --gold:#B7791F; --gold-soft:#FBF0D9; --ok:#2F7A3B; --ok-soft:#E3F1DF; --erro:#B42318;
+  --on-ember:#FFFFFF; color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --bg:#17100C; --surface:#241811; --text:#F7EDE4; --muted:#BCA697; --line:#3D2C22;
+    --ember:#FF6B2C; --ember-soft:#3A1E12; --gold:#FFC233; --gold-soft:#3A2D12; --ok:#6BCB77; --ok-soft:#1E3322; --erro:#F97066;
+    --on-ember:#17100C; color-scheme:dark; }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 "Nunito Sans",system-ui,sans-serif}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--ember);outline-offset:2px}
+h1,h2,.num{font-family:Oswald,"Arial Narrow",sans-serif;font-weight:700}
+header{display:flex;flex-wrap:wrap;align-items:center;gap:12px 18px;padding:14px 20px;border-bottom:1px solid var(--line);background:var(--surface)}
+header h1{margin:0;font-size:24px}
+header h1 span{color:var(--ember)}
+.ctrl{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-left:auto;font-size:14px}
+.ctrl label{display:flex;align-items:center;gap:6px}
+.ctrl select{border:1px solid var(--line);border-radius:8px;padding:5px 8px;background:var(--bg)}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:7px 12px;font-weight:600}
+.btn.prim{background:var(--ember);border-color:var(--ember);color:var(--on-ember)}
+.btn.ok{background:var(--ok);border-color:var(--ok);color:#fff}
+.btn.perigo{color:var(--erro)}
+.estado{font-size:13px;color:var(--muted)}
+.estado.falha{color:var(--erro)}
+main{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;padding:16px 20px 40px}
+@media (max-width:900px){main{grid-template-columns:1fr}}
+.col h2{font-size:20px;margin:0 0 10px;display:flex;align-items:center;gap:8px}
+.col h2 .cont{font-family:"Nunito Sans",sans-serif;font-size:13px;font-weight:700;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:1px 9px}
+.vazio{color:var(--muted);font-size:14px;padding:18px;border:1px dashed var(--line);border-radius:12px;text-align:center}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
+.card.novo{border-color:var(--ember);box-shadow:0 0 0 2px var(--ember-soft)}
+.topo{display:flex;align-items:baseline;gap:10px}
+.num{font-size:26px;line-height:1}
+.hora{color:var(--muted);font-size:14px}
+.tag{margin-left:auto;font-size:12px;font-weight:700;padding:2px 9px;border-radius:999px;background:var(--gold-soft);color:var(--gold)}
+.tag.ret{background:var(--ok-soft);color:var(--ok)}
+.cli{margin:6px 0 8px;font-weight:600}
+.cli a{color:var(--ember);font-weight:600;text-decoration:none;margin-left:6px}
+ul{margin:0;padding:0;list-style:none;border-top:1px solid var(--line)}
+li{padding:6px 0;border-bottom:1px solid var(--line)}
+li b{font-size:16px}
+li small{display:block;color:var(--ember);font-weight:700}
+.det{font-size:14px;margin-top:8px;display:grid;gap:3px}
+.det span{color:var(--muted)}
+.total{display:flex;justify-content:space-between;font-weight:700;font-size:17px;margin-top:8px}
+.taxa{display:flex;gap:6px;align-items:center;margin-top:8px;font-size:14px}
+.taxa input{width:90px;border:1px solid var(--line);border-radius:8px;padding:5px 8px;background:var(--bg)}
+.acoes{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+details.final{margin-top:4px}
+details.final summary{cursor:pointer;color:var(--muted);font-size:14px;margin-bottom:8px}
+.login{max-width:360px;margin:12vh auto;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px}
+.login h1{margin:0 0 6px;font-size:26px}
+.login p{color:var(--muted);margin:0 0 14px}
+.login input{width:100%;border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:var(--bg);margin-bottom:6px}
+.login .erro{color:var(--erro);font-size:14px;min-height:20px}
+#impressao{display:none}
+@media print{
+  body *{visibility:hidden}
+  #impressao,#impressao *{visibility:visible}
+  #impressao{display:block;position:absolute;left:0;top:0;color:#000;background:#fff;font-family:Arial,Helvetica,sans-serif}
+}
+.comanda{width:var(--largura,72mm);font-size:var(--fonte,13px);line-height:1.35;color:#000}
+.comanda h3{text-align:center;margin:0;font-size:1.25em}
+.comanda .grande{font-size:1.6em;font-weight:700;text-align:center;margin:2px 0}
+.comanda .centro{text-align:center}
+.comanda hr{border:0;border-top:1px dashed #000;margin:6px 0}
+.comanda .lin{display:flex;justify-content:space-between;gap:8px}
+.comanda .it{font-weight:700;font-size:1.1em}
+.comanda .obs{margin-left:10px;font-weight:700}
+</style>
+</head>
+<body>
+
+<section class="login" id="telaLogin">
+  <h1>Painel da cozinha</h1>
+  <p>Digite a senha do painel para ver os pedidos.</p>
+  <input type="password" id="senha" placeholder="Senha do painel" autocomplete="current-password">
+  <div class="erro" id="erroLogin"></div>
+  <button class="btn prim" id="entrar" style="width:100%">Entrar</button>
+  <button class="btn" id="demo" style="width:100%;margin-top:8px">Ver demonstração com pedidos fictícios</button>
+</section>
+
+<div id="telaPainel" hidden>
+  <div id="faixaDemo" hidden style="background:var(--gold-soft);color:var(--text);padding:8px 20px;font-size:14px;border-bottom:1px solid var(--line)">
+    <b>Modo demonstração:</b> os pedidos são fictícios e nada é gravado. Um pedido novo chega sozinho em alguns segundos.
+  </div>
+  <header>
+    <h1>A Forja <span>·</span> cozinha</h1>
+    <span class="estado" id="estado">Conectando…</span>
+    <div class="ctrl">
+      <label>Impressora
+        <select id="largura">
+          <option value="80">Térmica 80 mm</option>
+          <option value="58">Térmica 58 mm</option>
+          <option value="a4">Folha comum</option>
+        </select>
+      </label>
+      <label><input type="checkbox" id="autoImprimir"> Imprimir pedidos novos</label>
+      <label>Endereço do cardápio <input type="url" id="site" placeholder="https://seu-usuario.github.io/aforja/" style="border:1px solid var(--line);border-radius:8px;padding:5px 8px;background:var(--bg);width:210px"></label>
+      <button class="btn" id="som">Ativar som</button>
+      <button class="btn" id="sair">Sair</button>
+    </div>
+  </header>
+  <main>
+    <div class="col"><h2>Novos <span class="cont" id="cNovos">0</span></h2><div id="lNovos"></div></div>
+    <div class="col"><h2>Em preparo <span class="cont" id="cPreparo">0</span></h2><div id="lPreparo"></div></div>
+    <div class="col">
+      <h2>Prontos e a caminho <span class="cont" id="cProntos">0</span></h2><div id="lProntos"></div>
+      <details class="final"><summary id="resumoFinal">Finalizados hoje</summary><div id="lFinal"></div></details>
+    </div>
+  </main>
+</div>
+
+<div id="impressao"></div>
+
+<script>
+const API = "https://bgwdnwzzltbekhfzcawm.supabase.co/functions/v1/cardapio-api";
+const $ = (id) => document.getElementById(id);
+const brl = (v) => "R$ " + Number(v || 0).toFixed(2).replace(".", ",");
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const hora = (iso) => new Date(iso).toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit", timeZone:"America/Sao_Paulo" });
+const fone = (t) => { const d = String(t || "").replace(/^55/, ""); return d.length >= 10 ? `(${d.slice(0,2)}) ${d.slice(2,-4)}-${d.slice(-4)}` : t; };
+const PAG = { pix:"Pix", cartao:"Cartão", dinheiro:"Dinheiro" };
+
+let senha = "";
+try { $("site").value = localStorage.getItem("aforja-site") || (location.protocol.startsWith("http") && !location.hostname.endsWith("claude.ai") ? location.origin + location.pathname.replace(/painel\/?(index\.html)?$/, "") : ""); senha = localStorage.getItem("aforja-painel") || ""; $("largura").value = localStorage.getItem("aforja-largura") || "80"; $("autoImprimir").checked = localStorage.getItem("aforja-auto") === "1"; } catch(e) {}
+
+let conhecidos = null, pedidos = [], audio = null, filaImpressao = [];
+
+/* ---------- Demonstração (sem banco, sem senha) ---------- */
+let demo = false, demoDados = [];
+function criarDemo() {
+  const min = (m) => new Date(Date.now() - m * 60000).toISOString();
+  demoDados = [
+    { id: 103, codigo: "demo103", criado_em: min(4), status: "recebido", tipo_entrega: "entrega",
+      endereco: "Rua 5, nº 120 — Setor Cristina — Ref.: casa de muro azul", forma_pagamento: "dinheiro", troco_para: 100,
+      subtotal: 55.98, taxa_entrega: 0, total: 55.98, origem: "site", observacoes: "Interfone quebrado, ligar ao chegar",
+      clientes: { nome: "Mariana Souza", telefone: "5562900000001" },
+      itens_pedido: [
+        { descricao: "Pizza Grande Calabresa / Bacon", quantidade: 1, preco_unitario: 39.99, observacao: "Sem cebola" },
+        { descricao: "Coca-Cola Original 2L", quantidade: 1, preco_unitario: 15.99, observacao: null }] },
+    { id: 102, codigo: "demo102", criado_em: min(15), status: "em_preparo", tipo_entrega: "retirada", endereco: null,
+      forma_pagamento: "pix", troco_para: null, subtotal: 69.98, taxa_entrega: 0, total: 69.98, origem: "site", observacoes: null,
+      clientes: { nome: "Carlos Lima", telefone: "5562900000002" },
+      itens_pedido: [{ descricao: "Pizza Grande Portuguesa", quantidade: 2, preco_unitario: 34.99, observacao: null }] },
+    { id: 101, codigo: "demo101", criado_em: min(32), status: "saiu_entrega", tipo_entrega: "entrega",
+      endereco: "Av. Brasil, nº 45 — Jardim América", forma_pagamento: "cartao", troco_para: null,
+      subtotal: 40.98, taxa_entrega: 7, total: 47.98, origem: "site", observacoes: null,
+      clientes: { nome: "Paula Mendes", telefone: "5562900000003" },
+      itens_pedido: [
+        { descricao: "Pizza Grande Frango com Catupiry", quantidade: 1, preco_unitario: 34.99, observacao: "Bem assada" },
+        { descricao: "Sprite 350ml", quantidade: 1, preco_unitario: 5.99, observacao: null }] },
+    { id: 100, codigo: "demo100", criado_em: min(55), status: "entregue", tipo_entrega: "retirada", endereco: null,
+      forma_pagamento: "pix", troco_para: null, subtotal: 34.99, taxa_entrega: 0, total: 34.99, origem: "site", observacoes: null,
+      clientes: { nome: "João Pedro", telefone: "5562900000004" },
+      itens_pedido: [{ descricao: "Pizza Grande Marguerita", quantidade: 1, preco_unitario: 34.99, observacao: null }] },
+  ];
+  setTimeout(() => {
+    demoDados.unshift({ id: 104, codigo: "demo104", criado_em: new Date().toISOString(), status: "recebido", tipo_entrega: "entrega",
+      endereco: "Rua 12, Qd 8, Lt 3 — Setor Cristina", forma_pagamento: "dinheiro", troco_para: 50, subtotal: 44.98,
+      taxa_entrega: 0, total: 44.98, origem: "site", observacoes: null, clientes: { nome: "Fernanda Alves", telefone: "5562900000005" },
+      itens_pedido: [
+        { descricao: "Pizza Grande Carne Seca / Frango Cheddar", quantidade: 1, preco_unitario: 39.99, observacao: null },
+        { descricao: "Água", quantidade: 1, preco_unitario: 4.99, observacao: null }] });
+  }, 15000);
+}
+function apiDemo(acao, corpo) {
+  if (acao === "pedidos") return { pedidos: JSON.parse(JSON.stringify(demoDados)) };
+  const p = demoDados.find((x) => x.id === Number(corpo?.id));
+  if (acao === "status" && p) p.status = corpo.status;
+  if (acao === "taxa" && p) { p.taxa_entrega = Number(corpo.taxa) || 0; p.total = Math.round((p.subtotal + p.taxa_entrega) * 100) / 100; }
+  return { ok: true };
+}
+$("demo").addEventListener("click", async () => {
+  demo = true; criarDemo();
+  await carregar(true);
+  $("faixaDemo").hidden = false; $("sair").textContent = "Sair da demonstração";
+  $("telaLogin").hidden = true; $("telaPainel").hidden = false;
+  setInterval(() => carregar(false), 3000);
+});
+
+async function api(acao, metodo = "GET", corpo) {
+  if (demo) return apiDemo(acao, corpo);
+  const r = await fetch(`${API}?acao=${acao}${metodo === "GET" ? "&dias=1" : ""}`, {
+    method: metodo,
+    headers: { "x-painel-senha": senha, ...(corpo ? { "Content-Type": "application/json" } : {}) },
+    body: corpo ? JSON.stringify(corpo) : undefined,
+  });
+  const dados = await r.json().catch(() => ({}));
+  if (!r.ok) { const e = new Error(dados.erro || `Erro ${r.status}`); e.status = r.status; throw e; }
+  return dados;
+}
+
+/* ---------- Login ---------- */
+async function entrar() {
+  senha = $("senha").value.trim() || senha;
+  $("erroLogin").textContent = "";
+  try {
+    await carregar(true);
+    try { localStorage.setItem("aforja-painel", senha); } catch(e) {}
+    $("telaLogin").hidden = true; $("telaPainel").hidden = false;
+    setInterval(() => carregar(false), 8000);
+  } catch (e) {
+    $("erroLogin").textContent = e.status === 401 ? "Senha incorreta." : "Não foi possível conectar. " + e.message;
+  }
+}
+$("entrar").addEventListener("click", entrar);
+$("senha").addEventListener("keydown", (e) => { if (e.key === "Enter") entrar(); });
+$("sair").addEventListener("click", () => { if (!demo) { try { localStorage.removeItem("aforja-painel"); } catch(e) {} } location.reload(); });
+if (senha) entrar();
+
+/* ---------- Carregar pedidos ---------- */
+async function carregar(primeira) {
+  try {
+    const dados = await api("pedidos");
+    pedidos = dados.pedidos || [];
+    const novos = conhecidos ? pedidos.filter((p) => !conhecidos.has(p.id)) : [];
+    conhecidos = new Set(pedidos.map((p) => p.id));
+    desenhar(new Set(novos.map((p) => p.id)));
+    $("estado").textContent = "Atualizado às " + new Date().toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit", second:"2-digit" });
+    $("estado").classList.remove("falha");
+    if (novos.length) {
+      tocar();
+      document.title = `(${novos.length}) Novo pedido · A Forja`;
+      if ($("autoImprimir").checked) novos.slice().reverse().forEach((p) => filaImpressao.push(p.id));
+      imprimirFila();
+    }
+  } catch (e) {
+    if (primeira) throw e;
+    $("estado").textContent = "Sem conexão, tentando de novo…";
+    $("estado").classList.add("falha");
+  }
+}
+window.addEventListener("focus", () => { document.title = "Painel da cozinha · A Forja Pizzaria"; });
+
+/* ---------- Desenho ---------- */
+function botoes(p) {
+  const b = [];
+  const pronto = p.tipo_entrega === "entrega" ? ["saiu_entrega", "Saiu p/ entrega"] : ["pronto_retirada", "Pronto p/ retirar"];
+  if (p.status === "aguardando_pagamento") b.push(`<button class="btn ok" data-st="recebido" data-id="${p.id}">Pix confirmado</button>`);
+  if (p.status === "recebido") b.push(`<button class="btn prim" data-st="em_preparo" data-id="${p.id}">Em preparo</button>`);
+  if (p.status === "em_preparo") b.push(`<button class="btn prim" data-st="${pronto[0]}" data-id="${p.id}">${pronto[1]}</button>`);
+  if (p.status === "saiu_entrega" || p.status === "pronto_retirada") b.push(`<button class="btn ok" data-st="entregue" data-id="${p.id}">Entregue</button>`);
+  b.push(`<button class="btn" data-imprimir="${p.id}">Imprimir</button>`);
+  b.push(`<a class="btn" style="text-decoration:none;color:var(--ok)" href="${linkAviso(p)}" target="_blank" rel="noopener">Avisar cliente</a>`);
+  if (!["entregue", "cancelado"].includes(p.status)) b.push(`<button class="btn perigo" data-st="cancelado" data-id="${p.id}">Cancelar</button>`);
+  return b.join("");
+}
+
+function cartao(p, novo) {
+  const c = p.clientes || {};
+  const itens = (p.itens_pedido || []).map((i) =>
+    `<li><b>${i.quantidade}x</b> ${esc(i.descricao)}${i.observacao ? `<small>Obs.: ${esc(i.observacao)}</small>` : ""}</li>`).join("");
+  const mapa = p.latitude ? ` · <a href="https://maps.google.com/?q=${p.latitude},${p.longitude}" target="_blank" rel="noopener">mapa</a>` : "";
+  const troco = p.forma_pagamento === "dinheiro" && p.troco_para ? `, troco para ${brl(p.troco_para)} (levar ${brl(p.troco_para - p.total)})` : "";
+  const editarTaxa = p.tipo_entrega === "entrega" && !["entregue", "cancelado"].includes(p.status)
+    ? `<div class="taxa">Taxa de entrega <input type="number" min="0" step="0.5" value="${Number(p.taxa_entrega)}" data-taxa="${p.id}"> <button class="btn" data-salvartaxa="${p.id}">Salvar</button></div>` : "";
+  return `<article class="card${novo ? " novo" : ""}">
+    <div class="topo"><span class="num">nº ${p.id}</span><span class="hora">${hora(p.criado_em)}${p.origem === "site" ? " · site" : p.origem === "whatsapp" ? " · bot" : ""}</span>
+      <span class="tag${p.tipo_entrega === "retirada" ? " ret" : ""}">${p.tipo_entrega === "retirada" ? "Retirada" : "Entrega"}</span></div>
+    <div class="cli">${esc(c.nome || "Cliente")}<a href="https://wa.me/${esc(c.telefone)}" target="_blank" rel="noopener">${esc(fone(c.telefone))}</a></div>
+    <ul>${itens}</ul>
+    <div class="det">
+      ${p.endereco ? `<div><span>Endereço:</span> ${esc(p.endereco)}${mapa}</div>` : ""}
+      <div><span>Pagamento:</span> ${PAG[p.forma_pagamento] || p.forma_pagamento}${troco}</div>
+      ${p.observacoes ? `<div><span>Obs.:</span> <b>${esc(p.observacoes)}</b></div>` : ""}
+    </div>
+    ${editarTaxa}
+    <div class="total"><span>Total${Number(p.taxa_entrega) ? "" : p.tipo_entrega === "entrega" ? " (sem taxa)" : ""}</span><span>${brl(p.total)}</span></div>
+    <div class="acoes">${botoes(p)}</div>
+  </article>`;
+}
+
+function desenhar(novos) {
+  const grupos = {
+    lNovos: pedidos.filter((p) => ["recebido", "aguardando_pagamento"].includes(p.status)),
+    lPreparo: pedidos.filter((p) => p.status === "em_preparo"),
+    lProntos: pedidos.filter((p) => ["saiu_entrega", "pronto_retirada"].includes(p.status)),
+    lFinal: pedidos.filter((p) => ["entregue", "cancelado"].includes(p.status)),
+  };
+  const vazio = { lNovos:"Nenhum pedido novo. Eles aparecem aqui sozinhos.", lPreparo:"Nada no forno agora.", lProntos:"Nenhum pedido pronto.", lFinal:"Nenhum pedido finalizado." };
+  for (const [id, lista] of Object.entries(grupos)) {
+    const ordenada = id === "lFinal" ? lista : lista.slice().sort((a, b) => a.id - b.id);
+    $(id).innerHTML = ordenada.length ? ordenada.map((p) => cartao(p, novos.has(p.id))).join("") : `<p class="vazio">${vazio[id]}</p>`;
+  }
+  $("cNovos").textContent = grupos.lNovos.length;
+  $("cPreparo").textContent = grupos.lPreparo.length;
+  $("cProntos").textContent = grupos.lProntos.length;
+  $("resumoFinal").textContent = `Finalizados hoje (${grupos.lFinal.length})`;
+}
+
+/* ---------- Avisar cliente pelo WhatsApp da loja ---------- */
+$("site").addEventListener("change", () => { try { localStorage.setItem("aforja-site", $("site").value.trim()); } catch(e) {} desenhar(new Set()); });
+function linkAviso(p) {
+  const c = p.clientes || {};
+  const nome = (c.nome || "").split(" ")[0];
+  let site = $("site").value.trim();
+  if (site && !site.endsWith("/") && !site.endsWith(".html")) site += "/";
+  const acomp = site && p.codigo ? `\n\nAcompanhe por aqui: ${site}?pedido=${p.id}&c=${p.codigo}` : "";
+  const taxa = p.tipo_entrega === "entrega" && Number(p.taxa_entrega) ? `\nTaxa de entrega: ${brl(p.taxa_entrega)}` : "";
+  const msgs = {
+    aguardando_pagamento: `Olá${nome ? ", " + nome : ""}! Recebemos o seu pedido nº ${p.id}. Assim que o Pix de ${brl(p.total)} for confirmado, ele vai para o forno.`,
+    recebido: `Olá${nome ? ", " + nome : ""}! Recebemos o seu pedido nº ${p.id} na A Forja Pizzaria.${taxa}\nTotal: ${brl(p.total)}`,
+    em_preparo: `Seu pedido nº ${p.id} já está no forno! 🍕`,
+    saiu_entrega: `Seu pedido nº ${p.id} saiu para entrega! Logo chega aí.`,
+    pronto_retirada: `Seu pedido nº ${p.id} está pronto para retirada no balcão: Avenida Rui Barbosa, Qd 06, Lote 01, Setor Cristina.`,
+    entregue: `Obrigado pela preferência, ${nome || "volte sempre"}! Bom apetite. 🍕`,
+    cancelado: `Seu pedido nº ${p.id} foi cancelado. Se tiver dúvidas, é só responder esta mensagem.`,
+  };
+  const fim = ["entregue", "cancelado"].includes(p.status);
+  return `https://wa.me/${c.telefone}?text=${encodeURIComponent((msgs[p.status] || "") + (fim ? "" : acomp))}`;
+}
+
+/* ---------- Ações ---------- */
+document.addEventListener("click", async (e) => {
+  const st = e.target.closest("[data-st]"), imp = e.target.closest("[data-imprimir]"), tx = e.target.closest("[data-salvartaxa]");
+  try {
+    if (st) {
+      if (st.dataset.st === "cancelado" && !confirm(`Cancelar o pedido nº ${st.dataset.id}?`)) return;
+      st.disabled = true;
+      await api("status", "POST", { id: Number(st.dataset.id), status: st.dataset.st });
+      await carregar(false);
+    }
+    if (imp) imprimir(Number(imp.dataset.imprimir));
+    if (tx) {
+      const v = Number(document.querySelector(`[data-taxa="${tx.dataset.salvartaxa}"]`).value);
+      tx.disabled = true;
+      await api("taxa", "POST", { id: Number(tx.dataset.salvartaxa), taxa: v });
+      await carregar(false);
+    }
+  } catch (err) { alert("Não foi possível salvar: " + err.message); carregar(false); }
+});
+
+/* ---------- Som ---------- */
+$("som").addEventListener("click", () => {
+  audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+  audio.resume(); tocar();
+  $("som").textContent = "Som ativado";
+});
+function tocar() {
+  if (!audio) return;
+  [0, 0.25, 0.5].forEach((t) => {
+    const o = audio.createOscillator(), g = audio.createGain();
+    o.frequency.value = 880; o.connect(g); g.connect(audio.destination);
+    g.gain.setValueAtTime(0.25, audio.currentTime + t);
+    g.gain.exponentialRampToValueAtTime(0.001, audio.currentTime + t + 0.2);
+    o.start(audio.currentTime + t); o.stop(audio.currentTime + t + 0.2);
+  });
+}
+
+/* ---------- Impressão ---------- */
+$("largura").addEventListener("change", () => { try { localStorage.setItem("aforja-largura", $("largura").value); } catch(e) {} });
+$("autoImprimir").addEventListener("change", () => { try { localStorage.setItem("aforja-auto", $("autoImprimir").checked ? "1" : "0"); } catch(e) {} });
+
+function comanda(p) {
+  const c = p.clientes || {};
+  const itens = (p.itens_pedido || []).map((i) =>
+    `<div class="lin it"><span>${i.quantidade}x ${esc(i.descricao)}</span></div>${i.observacao ? `<div class="obs">&gt; ${esc(i.observacao)}</div>` : ""}`).join("");
+  const troco = p.forma_pagamento === "dinheiro" && p.troco_para
+    ? `<div class="lin"><span>Troco para</span><span>${brl(p.troco_para)}</span></div><div class="lin"><b>Levar de troco</b><b>${brl(p.troco_para - p.total)}</b></div>` : "";
+  return `<div class="comanda">
+    <h3>A FORJA PIZZARIA</h3>
+    <div class="grande">PEDIDO Nº ${p.id}</div>
+    <div class="centro">${new Date(p.criado_em).toLocaleString("pt-BR", { timeZone:"America/Sao_Paulo", day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit" })}</div>
+    <div class="grande">${p.tipo_entrega === "retirada" ? "RETIRADA" : "ENTREGA"}</div>
+    <hr>
+    <div><b>Cliente:</b> ${esc(c.nome || "")}</div>
+    <div><b>Tel.:</b> ${esc(fone(c.telefone))}</div>
+    ${p.endereco ? `<div><b>Endereço:</b> ${esc(p.endereco)}</div>` : ""}
+    <hr>
+    ${itens}
+    ${p.observacoes ? `<hr><div><b>OBS.:</b> ${esc(p.observacoes)}</div>` : ""}
+    <hr>
+    <div class="lin"><span>Subtotal</span><span>${brl(p.subtotal)}</span></div>
+    ${p.tipo_entrega === "entrega" ? `<div class="lin"><span>Taxa de entrega</span><span>${Number(p.taxa_entrega) ? brl(p.taxa_entrega) : "a definir"}</span></div>` : ""}
+    <div class="lin" style="font-size:1.3em;font-weight:700"><span>TOTAL</span><span>${brl(p.total)}</span></div>
+    <div><b>Pagamento:</b> ${PAG[p.forma_pagamento] || ""}</div>
+    ${troco}
+    <hr><div class="centro">Obrigado pela preferência!</div>
+  </div>`;
+}
+
+function imprimir(id) {
+  const p = pedidos.find((x) => x.id === id);
+  if (!p) return;
+  const larg = $("largura").value;
+  const estilo = document.getElementById("estiloPagina") || document.head.appendChild(Object.assign(document.createElement("style"), { id:"estiloPagina" }));
+  if (larg === "a4") {
+    estilo.textContent = "@page{size:A4;margin:12mm} .comanda{--largura:120mm;--fonte:16px}";
+  } else {
+    const w = larg === "58" ? 58 : 80;
+    estilo.textContent = `@page{size:${w}mm auto;margin:2mm} .comanda{--largura:${w - 6}mm;--fonte:${w === 58 ? 11 : 13}px}`;
+  }
+  $("impressao").innerHTML = comanda(p);
+  window.print();
+}
+
+function imprimirFila() {
+  const id = filaImpressao.shift();
+  if (id == null) return;
+  imprimir(id);
+  setTimeout(imprimirFila, 1500);
+}
+</script>
+</body>
+</html>
