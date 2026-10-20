@@ -66,7 +66,40 @@ details.final summary{cursor:pointer;color:var(--muted);font-size:14px;margin-bo
 .login p{color:var(--muted);margin:0 0 14px}
 .login input{width:100%;border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:var(--bg);margin-bottom:6px}
 .login .erro{color:var(--erro);font-size:14px;min-height:20px}
+.trocar{display:flex;gap:6px}
+.trocar button{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 14px;font-weight:700}
+.trocar button[aria-pressed="true"]{background:var(--text);color:var(--bg);border-color:var(--text)}
+.gestao{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;padding:16px 20px 40px}
+@media (max-width:1000px){.gestao{grid-template-columns:1fr}}
+.gestao h2{font-size:20px;margin:0 0 4px}
+.gestao .dica{color:var(--muted);font-size:14px;margin:0 0 12px}
+.linha-g{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.linha-g .nm{flex:1;min-width:0}
+.linha-g .nm b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.linha-g .nm small{color:var(--muted)}
+.linha-g.off .nm b{color:var(--muted);text-decoration:line-through}
+.sw{position:relative;width:46px;height:26px;flex:none}
+.sw input{position:absolute;inset:0;opacity:0;margin:0;cursor:pointer;z-index:1}
+.sw span{position:absolute;inset:0;border-radius:999px;background:var(--line);transition:background .15s}
+.sw span::after{content:"";position:absolute;left:3px;top:3px;width:20px;height:20px;border-radius:50%;background:var(--surface);transition:transform .15s}
+.sw input:checked+span{background:var(--ok)}
+.sw input:checked+span::after{transform:translateX(20px)}
+.sw input:focus-visible+span{outline:2px solid var(--ember);outline-offset:2px}
+.lixo{border:0;background:none;color:var(--erro);font-size:20px;padding:4px 6px;cursor:pointer}
+.novo{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.novo input,.novo select{flex:1;min-width:110px;border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:var(--bg)}
+.novo .btn{flex:none}
+.msg-g{font-size:14px;color:var(--erro);margin-top:6px;min-height:18px}
+.novo-cupom{display:grid;grid-template-columns:1fr 1fr}
+.novo-cupom .btn{grid-column:1/-1}
+.modal-card{grid-column:1/-1}
+.modal-linha{display:flex;flex-wrap:wrap;gap:12px 32px;align-items:center;margin-top:6px}
+.modal-item{display:flex;align-items:center;gap:12px;font-weight:700;font-size:17px}
+.modal-item small{display:block;font-weight:400;font-size:13px;color:var(--muted)}
+.alerta-modal{background:var(--gold-soft);color:var(--text);border-radius:999px;padding:4px 12px;font-size:13px;font-weight:700}
+.novo-cupom input,.novo-cupom select{min-width:0}
 #impressao{display:none}
+[hidden]{display:none !important}
 @media print{
   body *{visibility:hidden}
   #impressao,#impressao *{visibility:visible}
@@ -99,7 +132,12 @@ details.final summary{cursor:pointer;color:var(--muted);font-size:14px;margin-bo
   </div>
   <header>
     <h1>A Forja <span>·</span> cozinha</h1>
+    <div class="trocar" role="group" aria-label="Seção">
+      <button type="button" data-aba="pedidos" aria-pressed="true">Pedidos</button>
+      <button type="button" data-aba="gestao" aria-pressed="false">Cardápio e cupons</button>
+    </div>
     <span class="estado" id="estado">Conectando…</span>
+    <span class="alerta-modal" id="modalAlerta" hidden></span>
     <div class="ctrl">
       <label>Impressora
         <select id="largura">
@@ -110,11 +148,10 @@ details.final summary{cursor:pointer;color:var(--muted);font-size:14px;margin-bo
       </label>
       <label><input type="checkbox" id="autoImprimir"> Imprimir pedidos novos</label>
       <label>Endereço do cardápio <input type="url" id="site" placeholder="https://seu-usuario.github.io/aforja/" style="border:1px solid var(--line);border-radius:8px;padding:5px 8px;background:var(--bg);width:210px"></label>
-      <button class="btn" id="som">Ativar som</button>
       <button class="btn" id="sair">Sair</button>
     </div>
   </header>
-  <main>
+  <main id="vPedidos">
     <div class="col"><h2>Novos <span class="cont" id="cNovos">0</span></h2><div id="lNovos"></div></div>
     <div class="col"><h2>Em preparo <span class="cont" id="cPreparo">0</span></h2><div id="lPreparo"></div></div>
     <div class="col">
@@ -122,6 +159,46 @@ details.final summary{cursor:pointer;color:var(--muted);font-size:14px;margin-bo
       <details class="final"><summary id="resumoFinal">Finalizados hoje</summary><div id="lFinal"></div></details>
     </div>
   </main>
+  <section class="gestao" id="vGestao" hidden>
+    <div class="card modal-card">
+      <h2>Formas de atendimento</h2>
+      <p class="dica">Desligue a entrega quando não houver entregador: o cardápio passa a aceitar só retirada no balcão. Com as duas desligadas, os pedidos online ficam pausados.</p>
+      <div class="modal-linha">
+        <div class="modal-item"><label class="sw"><input type="checkbox" role="switch" id="swEntrega" data-modal="entrega" checked aria-label="Entrega disponível"><span></span></label><div>Entrega<small id="txEntrega">Liberada</small></div></div>
+        <div class="modal-item"><label class="sw"><input type="checkbox" role="switch" id="swRetirada" data-modal="retirada" checked aria-label="Retirada disponível"><span></span></label><div>Retirada no balcão<small id="txRetirada">Liberada</small></div></div>
+      </div>
+      <div class="msg-g" id="mModal"></div>
+    </div>
+    <div class="card">
+      <h2>Sabores</h2>
+      <p class="dica">Desligue o que acabou: some do pedido na hora e aparece como "Indisponível hoje" no cardápio.</p>
+      <div id="gSabores"></div>
+      <div class="novo"><input id="nSabor" placeholder="Novo sabor, ex.: Quatro Queijos" maxlength="60"><button class="btn prim" id="addSabor">Adicionar</button></div>
+      <div class="msg-g" id="mSabor"></div>
+    </div>
+    <div class="card">
+      <h2>Bebidas</h2>
+      <p class="dica">Ligue ou desligue conforme o estoque.</p>
+      <div id="gBebidas"></div>
+      <div class="novo"><input id="nBebida" placeholder="Nova bebida, ex.: Guaraná 2L" maxlength="60"><input id="nBebidaPreco" inputmode="decimal" placeholder="Preço" style="max-width:110px"><button class="btn prim" id="addBebida">Adicionar</button></div>
+      <div class="msg-g" id="mBebida"></div>
+    </div>
+    <div class="card">
+      <h2>Cupons de desconto</h2>
+      <p class="dica">O desconto vale sobre o valor das pizzas (bebidas e entrega não entram).</p>
+      <div id="gCupons"></div>
+      <div class="novo novo-cupom">
+        <input id="nCupom" placeholder="Código: PIZZA10" maxlength="30" style="text-transform:uppercase">
+        <select id="nCupomTipo"><option value="percentual">% de desconto</option><option value="valor">R$ de desconto</option></select>
+        <input id="nCupomValor" inputmode="decimal" placeholder="Valor: 10">
+        <input id="nCupomMin" inputmode="decimal" placeholder="Mínimo em pizzas (opc.)">
+        <input id="nCupomUsos" inputmode="numeric" placeholder="Limite de usos (opc.)">
+        <label style="grid-column:1/-1;font-size:13px;color:var(--muted);display:flex;align-items:center;gap:8px">Válido até (opcional) <input id="nCupomVal" type="date" style="flex:1"></label>
+        <button class="btn prim" id="addCupom">Criar cupom</button>
+      </div>
+      <div class="msg-g" id="mCupom"></div>
+    </div>
+  </section>
 </div>
 
 <div id="impressao"></div>
@@ -147,7 +224,7 @@ function criarDemo() {
   demoDados = [
     { id: 103, codigo: "demo103", criado_em: min(4), status: "recebido", tipo_entrega: "entrega",
       endereco: "Rua 5, nº 120 — Jardim Marista — Ref.: casa de muro azul", forma_pagamento: "dinheiro", troco_para: 100,
-      subtotal: 55.98, taxa_entrega: 0, total: 55.98, origem: "site", observacoes: "Interfone quebrado, ligar ao chegar",
+      subtotal: 55.98, desconto: 4.00, cupom: "PIZZA10", taxa_entrega: 0, total: 51.98, origem: "site", observacoes: "Interfone quebrado, ligar ao chegar",
       clientes: { nome: "Mariana Souza", telefone: "5562900000001" },
       itens_pedido: [
         { descricao: "Pizza Grande Calabresa / Bacon", quantidade: 1, preco_unitario: 39.99, observacao: "Sem cebola" },
@@ -177,8 +254,35 @@ function criarDemo() {
         { descricao: "Água", quantidade: 1, preco_unitario: 4.99, observacao: null }] });
   }, 15000);
 }
+let demoProd = {
+  modalidade: { entrega: true, retirada: true },
+  sabores: ["Calabresa","Frango com Catupiry","Carne Seca","Bacon","Marguerita","Mussarela","Calabacon","Portuguesa","Carne Seca Goiana","Bacon Especial","Carne Seca Cremosa","Frango","Frango com Bacon","Presunto","Frango Cheddar"].map((nome, i) => ({ id: i + 1, nome, ordem: i + 1, ativo: nome !== "Carne Seca" })),
+  bebidas: [["Coca-Cola Original 350ml",5.99],["Coca-Cola Zero Açúcar 350ml",5.99],["Sprite 350ml",5.99],["Coca-Cola Original 1L",9.99],["Coca-Cola Original 2L",15.99],["Coca-Cola Zero Açúcar 2L",15.99],["Fanta Laranja 2L",14.99],["Sprite 2L",14.99]].map(([nome, preco], i) => ({ id: i + 1, nome, preco, ordem: i + 1, ativo: i !== 6 })),
+  cupons: [{ codigo: "PIZZA10", tipo: "percentual", valor: 10, minimo: null, validade: null, uso_max: null, usos: 3, ativo: true },
+           { codigo: "BEMVINDO5", tipo: "valor", valor: 5, minimo: 39.99, validade: null, uso_max: 50, usos: 12, ativo: true }],
+};
 function apiDemo(acao, corpo) {
   if (acao === "pedidos") return { pedidos: JSON.parse(JSON.stringify(demoDados)) };
+  if (acao === "produtos") return JSON.parse(JSON.stringify(demoProd));
+  if (acao === "produto" && corpo.tipo === "modalidade") {
+    if (typeof corpo.entrega === "boolean") demoProd.modalidade.entrega = corpo.entrega;
+    if (typeof corpo.retirada === "boolean") demoProd.modalidade.retirada = corpo.retirada;
+    return { ok: true };
+  }
+  if (acao === "produto") {
+    const t = corpo.tipo, lista = t === "sabor" ? demoProd.sabores : t === "bebida" ? demoProd.bebidas : demoProd.cupons;
+    const chave = t === "cupom" ? "codigo" : "id", alvo = t === "cupom" ? String(corpo.codigo).toUpperCase() : Number(corpo.id);
+    if (corpo.acao === "adicionar") {
+      if (t === "cupom") {
+        if (lista.some((c) => c.codigo === alvo)) throw new Error("Já existe um cupom com esse código.");
+        lista.unshift({ codigo: alvo, tipo: corpo.tipo_desconto, valor: Number(String(corpo.valor).replace(",", ".")), minimo: corpo.minimo ? Number(String(corpo.minimo).replace(",", ".")) : null, validade: corpo.validade || null, uso_max: corpo.uso_max ? Number(corpo.uso_max) : null, usos: 0, ativo: true });
+      } else lista.push({ id: Date.now(), nome: corpo.nome, preco: Number(String(corpo.preco || 0).replace(",", ".")), ordem: lista.length + 1, ativo: true });
+    }
+    const item = lista.find((x) => x[chave] === alvo);
+    if (corpo.acao === "disponivel" && item) item.ativo = !!corpo.ativo;
+    if (corpo.acao === "excluir") { const i = lista.findIndex((x) => x[chave] === alvo); if (i >= 0) lista.splice(i, 1); }
+    return { ok: true };
+  }
   const p = demoDados.find((x) => x.id === Number(corpo?.id));
   if (acao === "status" && p) p.status = corpo.status;
   if (acao === "taxa" && p) { p.taxa_entrega = Number(corpo.taxa) || 0; p.total = Math.round((p.subtotal + p.taxa_entrega) * 100) / 100; }
@@ -230,7 +334,8 @@ async function carregar(primeira) {
     const novos = conhecidos ? pedidos.filter((p) => !conhecidos.has(p.id)) : [];
     conhecidos = new Set(pedidos.map((p) => p.id));
     desenhar(new Set(novos.map((p) => p.id)));
-    $("estado").textContent = "Atualizado às " + new Date().toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit", second:"2-digit" });
+    if (primeira) carregarProdutos();
+    $("estado").textContent = "Atualizado às " + new Date().toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit", second:"2-digit" }) + (somOk() ? " · som ativo" : " · toque na tela para liberar o som");
     $("estado").classList.remove("falha");
     if (novos.length) {
       tocar();
@@ -274,6 +379,7 @@ function cartao(p, novo) {
     <ul>${itens}</ul>
     <div class="det">
       ${p.endereco ? `<div><span>Endereço:</span> ${esc(p.endereco)}${mapa}</div>` : ""}
+      ${Number(p.desconto) > 0 ? `<div><span>Cupom:</span> <b>${esc(p.cupom || "")}</b> − ${brl(p.desconto)}</div>` : ""}
       <div><span>Pagamento:</span> ${PAG[p.forma_pagamento] || p.forma_pagamento}${troco}</div>
       ${p.observacoes ? `<div><span>Obs.:</span> <b>${esc(p.observacoes)}</b></div>` : ""}
     </div>
@@ -343,14 +449,98 @@ document.addEventListener("click", async (e) => {
   } catch (err) { alert("Não foi possível salvar: " + err.message); carregar(false); }
 });
 
-/* ---------- Som ---------- */
-$("som").addEventListener("click", () => {
-  audio = audio || new (window.AudioContext || window.webkitAudioContext)();
-  audio.resume(); tocar();
-  $("som").textContent = "Som ativado";
+/* ---------- Abas ---------- */
+document.querySelectorAll("[data-aba]").forEach((b) => b.addEventListener("click", () => {
+  const g = b.dataset.aba === "gestao";
+  document.querySelectorAll("[data-aba]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+  $("vPedidos").hidden = g; $("vGestao").hidden = !g;
+  if (g) carregarProdutos();
+}));
+
+/* ---------- Gestão do cardápio e cupons ---------- */
+let PROD = { sabores: [], bebidas: [], cupons: [] };
+const sw = (attrs, on, rotulo) => `<label class="sw" title="${on ? "Disponível" : "Indisponível"}"><input type="checkbox" role="switch" ${attrs} ${on ? "checked" : ""} aria-label="${esc(rotulo)}"><span></span></label>`;
+async function carregarProdutos() {
+  try { PROD = await api("produtos"); desenharGestao(); }
+  catch (e) { $("mSabor").textContent = "Não foi possível carregar: " + e.message; }
+}
+function desenharModalidade() {
+  const m = PROD.modalidade || { entrega: true, retirada: true };
+  $("swEntrega").checked = m.entrega; $("swRetirada").checked = m.retirada;
+  $("txEntrega").textContent = m.entrega ? "Liberada" : "Travada: o cardápio aceita só retirada";
+  $("txRetirada").textContent = m.retirada ? "Liberada" : "Travada";
+  const aviso = !m.entrega && !m.retirada ? "Pedidos online pausados" : !m.entrega ? "Entrega travada · só retirada" : !m.retirada ? "Retirada travada · só entrega" : "";
+  $("modalAlerta").hidden = !aviso; $("modalAlerta").textContent = aviso;
+}
+$("vGestao").addEventListener("change", async (e) => {
+  const t = e.target.closest("[data-modal]"); if (!t) return;
+  e.stopImmediatePropagation();
+  if (!$("swEntrega").checked && !$("swRetirada").checked && !confirm("Com entrega e retirada desligadas, os pedidos online ficam pausados. Confirmar?")) { t.checked = true; return; }
+  $("mModal").textContent = "";
+  try { await api("produto", "POST", { tipo: "modalidade", acao: "definir", [t.dataset.modal]: t.checked }); }
+  catch (err) { $("mModal").textContent = err.message; }
+  await carregarProdutos();
+}, true);
+function desenharGestao() {
+  desenharModalidade();
+  $("gSabores").innerHTML = PROD.sabores.map((s) => `<div class="linha-g${s.ativo ? "" : " off"}"><div class="nm"><b>${esc(s.nome)}</b><small>${s.ativo ? "Disponível" : "Indisponível hoje"}</small></div>
+    ${sw(`data-tg="sabor" data-id="${s.id}"`, s.ativo, "Disponível: " + s.nome)}<button class="lixo" data-del="sabor" data-id="${s.id}" data-nome="${esc(s.nome)}" aria-label="Excluir ${esc(s.nome)}">×</button></div>`).join("") || `<p class="vazio">Nenhum sabor cadastrado.</p>`;
+  $("gBebidas").innerHTML = PROD.bebidas.map((b) => `<div class="linha-g${b.ativo ? "" : " off"}"><div class="nm"><b>${esc(b.nome)}</b><small>${brl(b.preco)}${b.ativo ? "" : " · indisponível"}</small></div>
+    ${sw(`data-tg="bebida" data-id="${b.id}"`, b.ativo, "Disponível: " + b.nome)}<button class="lixo" data-del="bebida" data-id="${b.id}" data-nome="${esc(b.nome)}" aria-label="Excluir ${esc(b.nome)}">×</button></div>`).join("") || `<p class="vazio">Nenhuma bebida cadastrada.</p>`;
+  $("gCupons").innerHTML = PROD.cupons.map((c) => {
+    const desc = c.tipo === "percentual" ? `${Number(c.valor)}% nas pizzas` : `${brl(c.valor)} nas pizzas`;
+    const regras = [c.minimo ? "mínimo " + brl(c.minimo) : "", c.validade ? "até " + new Date(c.validade).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" }) : "", `${c.usos}${c.uso_max ? "/" + c.uso_max : ""} usos`].filter(Boolean).join(" · ");
+    return `<div class="linha-g${c.ativo ? "" : " off"}"><div class="nm"><b>${esc(c.codigo)}</b><small>${desc} · ${regras}</small></div>
+      ${sw(`data-tg="cupom" data-cod="${esc(c.codigo)}"`, c.ativo, "Ativo: " + c.codigo)}<button class="lixo" data-del="cupom" data-cod="${esc(c.codigo)}" data-nome="${esc(c.codigo)}" aria-label="Excluir ${esc(c.codigo)}">×</button></div>`;
+  }).join("") || `<p class="vazio">Nenhum cupom criado.</p>`;
+}
+async function gerir(corpo, msgId) {
+  $(msgId).textContent = "";
+  try { await api("produto", "POST", corpo); await carregarProdutos(); return true; }
+  catch (e) { $(msgId).textContent = e.message; await carregarProdutos(); return false; }
+}
+const msgDe = (t) => t === "sabor" ? "mSabor" : t === "bebida" ? "mBebida" : "mCupom";
+$("vGestao").addEventListener("change", (e) => {
+  const t = e.target.closest("[data-tg]"); if (!t) return;
+  gerir({ tipo: t.dataset.tg, acao: "disponivel", id: Number(t.dataset.id), codigo: t.dataset.cod, ativo: t.checked }, msgDe(t.dataset.tg));
 });
+$("vGestao").addEventListener("click", (e) => {
+  const d = e.target.closest("[data-del]"); if (!d) return;
+  if (!confirm(`Excluir "${d.dataset.nome}"? Para só tirar do cardápio por hoje, use a chave de disponível.`)) return;
+  gerir({ tipo: d.dataset.del, acao: "excluir", id: Number(d.dataset.id), codigo: d.dataset.cod }, msgDe(d.dataset.del));
+});
+$("addSabor").addEventListener("click", async () => {
+  const nome = $("nSabor").value.trim();
+  if (nome.length < 2) { $("mSabor").textContent = "Digite o nome do sabor."; return; }
+  if (await gerir({ tipo: "sabor", acao: "adicionar", nome }, "mSabor")) $("nSabor").value = "";
+});
+$("addBebida").addEventListener("click", async () => {
+  const nome = $("nBebida").value.trim(), preco = $("nBebidaPreco").value.trim();
+  if (nome.length < 2 || !preco) { $("mBebida").textContent = "Digite o nome e o preço."; return; }
+  if (await gerir({ tipo: "bebida", acao: "adicionar", nome, preco }, "mBebida")) { $("nBebida").value = ""; $("nBebidaPreco").value = ""; }
+});
+$("addCupom").addEventListener("click", async () => {
+  const codigo = $("nCupom").value.trim().toUpperCase(), valor = $("nCupomValor").value.trim();
+  if (!codigo || !valor) { $("mCupom").textContent = "Digite o código e o valor do desconto."; return; }
+  const ok = await gerir({ tipo: "cupom", acao: "adicionar", codigo, tipo_desconto: $("nCupomTipo").value, valor,
+    minimo: $("nCupomMin").value.trim() || null, uso_max: $("nCupomUsos").value.trim() || null, validade: $("nCupomVal").value || null }, "mCupom");
+  if (ok) ["nCupom","nCupomValor","nCupomMin","nCupomUsos","nCupomVal"].forEach((k) => $(k).value = "");
+});
+
+/* ---------- Som (sempre ativo) ---------- */
+function prepararSom() {
+  try {
+    audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+    if (audio.state === "suspended") audio.resume();
+  } catch (e) {}
+}
+const somOk = () => audio && audio.state === "running";
+// O navegador só libera o som depois do primeiro toque ou tecla na página
+["pointerdown", "keydown", "touchstart"].forEach((ev) => document.addEventListener(ev, prepararSom, { passive: true }));
+prepararSom();
 function tocar() {
-  if (!audio) return;
+  prepararSom();
+  if (!somOk()) return;
   [0, 0.25, 0.5].forEach((t) => {
     const o = audio.createOscillator(), g = audio.createGain();
     o.frequency.value = 880; o.connect(g); g.connect(audio.destination);
@@ -384,6 +574,7 @@ function comanda(p) {
     ${p.observacoes ? `<hr><div><b>OBS.:</b> ${esc(p.observacoes)}</div>` : ""}
     <hr>
     <div class="lin"><span>Subtotal</span><span>${brl(p.subtotal)}</span></div>
+    ${Number(p.desconto) > 0 ? `<div class="lin"><span>Cupom ${esc(p.cupom || "")}</span><span>- ${brl(p.desconto)}</span></div>` : ""}
     ${p.tipo_entrega === "entrega" ? `<div class="lin"><span>Taxa de entrega</span><span>${Number(p.taxa_entrega) ? brl(p.taxa_entrega) : "a definir"}</span></div>` : ""}
     <div class="lin" style="font-size:1.3em;font-weight:700"><span>TOTAL</span><span>${brl(p.total)}</span></div>
     <div><b>Pagamento:</b> ${PAG[p.forma_pagamento] || ""}</div>
