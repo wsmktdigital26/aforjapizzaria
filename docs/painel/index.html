@@ -96,6 +96,18 @@ details.final summary{cursor:pointer;color:var(--muted);font-size:14px;margin-bo
 .modal-linha{display:flex;flex-wrap:wrap;gap:12px 32px;align-items:center;margin-top:6px}
 .modal-item{display:flex;align-items:center;gap:12px;font-weight:700;font-size:17px}
 .modal-item small{display:block;font-weight:400;font-size:13px;color:var(--muted)}
+.horas{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:4px 24px;margin-top:6px}
+.dia{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
+.dia b{width:72px}
+.dia input[type=time]{border:1px solid var(--line);border-radius:8px;padding:5px 6px;background:var(--bg);width:118px}
+.dia.off input[type=time]{opacity:.35}
+.chk-bebs{display:flex;flex-wrap:wrap;gap:6px 14px;width:100%;font-size:14px}
+.chk-bebs label{display:flex;align-items:center;gap:6px}
+.thumb{flex:none;width:48px;height:48px;border-radius:10px;border:1px dashed var(--line);background:var(--bg);padding:0;overflow:hidden;display:grid;place-items:center;font-size:20px;cursor:pointer}
+.thumb.tem{border-style:solid;background:#1A120E}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.thumb.enviando{opacity:.5;cursor:wait}
+.tirar-foto{border:0;background:none;color:var(--muted);text-decoration:underline;font-size:12px;padding:0;cursor:pointer}
 .alerta-modal{background:var(--gold-soft);color:var(--text);border-radius:999px;padding:4px 12px;font-size:13px;font-weight:700}
 .novo-cupom input,.novo-cupom select{min-width:0}
 #impressao{display:none}
@@ -169,6 +181,32 @@ details.final summary{cursor:pointer;color:var(--muted);font-size:14px;margin-bo
       </div>
       <div class="msg-g" id="mModal"></div>
     </div>
+    <div class="card modal-card">
+      <h2>Horário de funcionamento</h2>
+      <p class="dica">Fora destes horários o cardápio continua aberto para consulta, mas não recebe pedidos.</p>
+      <div class="horas" id="gHoras"></div>
+      <div class="modal-linha" style="margin-top:12px">
+        <div class="modal-item"><label class="sw"><input type="checkbox" role="switch" id="swFora" aria-label="Aceitar pedidos fora do horário"><span></span></label><div>Aceitar pedidos fora do horário<small>Desligado: só aceita pedidos com a loja aberta</small></div></div>
+        <button class="btn prim" id="salvarHoras">Salvar horários</button>
+      </div>
+      <div class="msg-g" id="mHoras"></div>
+    </div>
+    <div class="card">
+      <h2>Combos</h2>
+      <p class="dica">O cliente escolhe os sabores (e a bebida, se houver). Cupons não valem para combos.</p>
+      <div id="gCombos"></div>
+      <div class="novo novo-cupom">
+        <input id="nComboNome" placeholder="Nome: Combo Família" maxlength="60" style="grid-column:1/-1">
+        <input id="nComboDesc" placeholder="Descrição: 2 pizzas + refri 2L" maxlength="120" style="grid-column:1/-1">
+        <input id="nComboPreco" inputmode="decimal" placeholder="Preço: 79,90">
+        <select id="nComboQtd" aria-label="Quantidade de pizzas"><option value="1">1 pizza</option><option value="2">2 pizzas</option><option value="3">3 pizzas</option><option value="4">4 pizzas</option></select>
+        <label style="grid-column:1/-1;display:flex;align-items:center;gap:8px;font-size:14px"><input type="checkbox" id="nComboMeio" checked> Permitir meio a meio nas pizzas do combo</label>
+        <div style="grid-column:1/-1;font-size:13px;color:var(--muted)">Bebidas que o cliente pode escolher (nenhuma = combo sem bebida):</div>
+        <div class="chk-bebs" id="nComboBebs" style="grid-column:1/-1"></div>
+        <button class="btn prim" id="addCombo">Criar combo</button>
+      </div>
+      <div class="msg-g" id="mCombo"></div>
+    </div>
     <div class="card">
       <h2>Sabores</h2>
       <p class="dica">Desligue o que acabou: some do pedido na hora e aparece como "Indisponível hoje" no cardápio.</p>
@@ -202,6 +240,7 @@ details.final summary{cursor:pointer;color:var(--muted);font-size:14px;margin-bo
 </div>
 
 <div id="impressao"></div>
+<input type="file" id="arqFoto" accept="image/jpeg,image/png,image/webp,image/*" hidden>
 
 <script>
 const API = "https://bgwdnwzzltbekhfzcawm.supabase.co/functions/v1/cardapio-api";
@@ -256,6 +295,10 @@ function criarDemo() {
 }
 let demoProd = {
   modalidade: { entrega: true, retirada: true },
+  aceitar_fora_horario: false,
+  horarios: [0,1,2,3,4,5,6].map((d) => ({ dia_semana: d, aberto: [0,3,4,5,6].includes(d), abre: [0,3,4,5,6].includes(d) ? "18:30" : "", fecha: d === 0 ? "23:00" : [3,4].includes(d) ? "23:30" : [5,6].includes(d) ? "02:00" : "" })),
+  combos: [{ id: 1, nome: "Combo Forja", descricao: "1 pizza grande + refrigerante 2L", preco: 47.99, qtd_pizzas: 1, permite_meio: true, bebidas_opcoes: [5,6,7,8], ativo: true },
+           { id: 2, nome: "Combo Família", descricao: "2 pizzas grandes + refrigerante 2L", preco: 84.9, qtd_pizzas: 2, permite_meio: true, bebidas_opcoes: [5,6], ativo: true }],
   sabores: ["Calabresa","Frango com Catupiry","Carne Seca","Bacon","Marguerita","Mussarela","Calabacon","Portuguesa","Carne Seca Goiana","Bacon Especial","Carne Seca Cremosa","Frango","Frango com Bacon","Presunto","Frango Cheddar"].map((nome, i) => ({ id: i + 1, nome, ordem: i + 1, ativo: nome !== "Carne Seca" })),
   bebidas: [["Coca-Cola Original 350ml",5.99],["Coca-Cola Zero Açúcar 350ml",5.99],["Sprite 350ml",5.99],["Coca-Cola Original 1L",9.99],["Coca-Cola Original 2L",15.99],["Coca-Cola Zero Açúcar 2L",15.99],["Fanta Laranja 2L",14.99],["Sprite 2L",14.99]].map(([nome, preco], i) => ({ id: i + 1, nome, preco, ordem: i + 1, ativo: i !== 6 })),
   cupons: [{ codigo: "PIZZA10", tipo: "percentual", valor: 10, minimo: null, validade: null, uso_max: null, usos: 3, ativo: true },
@@ -264,13 +307,28 @@ let demoProd = {
 function apiDemo(acao, corpo) {
   if (acao === "pedidos") return { pedidos: JSON.parse(JSON.stringify(demoDados)) };
   if (acao === "produtos") return JSON.parse(JSON.stringify(demoProd));
+  if (acao === "foto") {
+    const lista = corpo.tipo === "sabor" ? demoProd.sabores : corpo.tipo === "bebida" ? demoProd.bebidas : demoProd.combos;
+    const item = lista.find((x) => x.id === Number(corpo.id));
+    if (item) item.foto_url = corpo.remover ? null : corpo.imagem;
+    return { ok: true };
+  }
+  if (acao === "produto" && corpo.tipo === "horarios") {
+    (corpo.dias || []).forEach((d) => { const h = demoProd.horarios.find((x) => x.dia_semana === d.dia_semana); if (h) Object.assign(h, { aberto: d.aberto, abre: d.abre || "", fecha: d.fecha || "" }); });
+    if (typeof corpo.aceitar_fora_horario === "boolean") demoProd.aceitar_fora_horario = corpo.aceitar_fora_horario;
+    return { ok: true };
+  }
+  if (acao === "produto" && corpo.tipo === "combo" && corpo.acao === "adicionar") {
+    demoProd.combos.push({ id: Date.now(), nome: corpo.nome, descricao: corpo.descricao, preco: Number(String(corpo.preco).replace(",", ".")), qtd_pizzas: Number(corpo.qtd_pizzas), permite_meio: corpo.permite_meio, bebidas_opcoes: corpo.bebidas_opcoes, ativo: true });
+    return { ok: true };
+  }
   if (acao === "produto" && corpo.tipo === "modalidade") {
     if (typeof corpo.entrega === "boolean") demoProd.modalidade.entrega = corpo.entrega;
     if (typeof corpo.retirada === "boolean") demoProd.modalidade.retirada = corpo.retirada;
     return { ok: true };
   }
   if (acao === "produto") {
-    const t = corpo.tipo, lista = t === "sabor" ? demoProd.sabores : t === "bebida" ? demoProd.bebidas : demoProd.cupons;
+    const t = corpo.tipo, lista = t === "sabor" ? demoProd.sabores : t === "bebida" ? demoProd.bebidas : t === "combo" ? demoProd.combos : demoProd.cupons;
     const chave = t === "cupom" ? "codigo" : "id", alvo = t === "cupom" ? String(corpo.codigo).toUpperCase() : Number(corpo.id);
     if (corpo.acao === "adicionar") {
       if (t === "cupom") {
@@ -481,11 +539,101 @@ $("vGestao").addEventListener("change", async (e) => {
   catch (err) { $("mModal").textContent = err.message; }
   await carregarProdutos();
 }, true);
+/* ---------- Fotos dos produtos ---------- */
+const fotoBtn = (tipo, id, url, nome) => `<button type="button" class="thumb${url ? " tem" : ""}" data-foto="${tipo}" data-id="${id}" title="${url ? "Trocar foto" : "Adicionar foto"}" aria-label="${url ? "Trocar" : "Adicionar"} foto de ${esc(nome)}">${url ? `<img src="${esc(url)}" alt="">` : "📷"}</button>`;
+const tirarFoto = (tipo, id, url) => url ? ` · <button type="button" class="tirar-foto" data-semfoto="${tipo}" data-id="${id}">remover foto</button>` : "";
+let alvoFoto = null;
+async function prepararImagem(arquivo) {
+  // Reduz para no máximo 900 px e converte em JPG: fica leve para o cardápio carregar rápido
+  const url = URL.createObjectURL(arquivo);
+  try {
+    const img = await new Promise((ok, erro) => { const i = new Image(); i.onload = () => ok(i); i.onerror = erro; i.src = url; });
+    const k = Math.min(1, 900 / Math.max(img.naturalWidth, img.naturalHeight));
+    const cv = document.createElement("canvas");
+    cv.width = Math.round(img.naturalWidth * k); cv.height = Math.round(img.naturalHeight * k);
+    const ctx = cv.getContext("2d"); ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, cv.width, cv.height);
+    ctx.drawImage(img, 0, 0, cv.width, cv.height);
+    return cv.toDataURL("image/jpeg", 0.82);
+  } finally { URL.revokeObjectURL(url); }
+}
+const msgFoto = (t) => t === "sabor" ? "mSabor" : t === "bebida" ? "mBebida" : "mCombo";
+$("vGestao").addEventListener("click", async (e) => {
+  const f = e.target.closest("[data-foto]");
+  if (f) { alvoFoto = { tipo: f.dataset.foto, id: Number(f.dataset.id), botao: f }; $("arqFoto").value = ""; $("arqFoto").click(); return; }
+  const r = e.target.closest("[data-semfoto]");
+  if (r) {
+    if (!confirm("Remover a foto deste produto?")) return;
+    try { await api("foto", "POST", { tipo: r.dataset.semfoto, id: Number(r.dataset.id), remover: true }); }
+    catch (err) { $(msgFoto(r.dataset.semfoto)).textContent = err.message; }
+    await carregarProdutos();
+  }
+});
+$("arqFoto").addEventListener("change", async () => {
+  const arq = $("arqFoto").files[0];
+  if (!arq || !alvoFoto) return;
+  const { tipo, id, botao } = alvoFoto;
+  $(msgFoto(tipo)).textContent = "";
+  botao.classList.add("enviando"); botao.textContent = "…";
+  try {
+    const imagem = await prepararImagem(arq);
+    await api("foto", "POST", { tipo, id, imagem });
+  } catch (err) {
+    $(msgFoto(tipo)).textContent = err?.message && !/load|decode/i.test(err.message) ? err.message : "Não consegui ler essa imagem. Use uma foto JPG ou PNG.";
+  }
+  await carregarProdutos();
+});
+
+const NOMES_DIA = ["Domingo","Segunda","Terça","Quarta","Quinta","Sexta","Sábado"];
+function desenharHoras() {
+  const hs = PROD.horarios || [];
+  $("gHoras").innerHTML = [1,2,3,4,5,6,0].map((d) => {
+    const h = hs.find((x) => x.dia_semana === d) || { aberto: false, abre: "", fecha: "" };
+    return `<div class="dia${h.aberto ? "" : " off"}" data-dia="${d}"><label class="sw"><input type="checkbox" role="switch" data-hab="${d}" ${h.aberto ? "checked" : ""} aria-label="Aberto ${NOMES_DIA[d]}"><span></span></label>
+      <b>${NOMES_DIA[d]}</b><input type="time" data-abre="${d}" value="${esc(h.abre || "")}" aria-label="Abre ${NOMES_DIA[d]}"> às <input type="time" data-fecha="${d}" value="${esc(h.fecha || "")}" aria-label="Fecha ${NOMES_DIA[d]}"></div>`;
+  }).join("");
+  $("swFora").checked = PROD.aceitar_fora_horario === true;
+}
+function desenharCombosG() {
+  const bebs = PROD.bebidas || [];
+  $("gCombos").innerHTML = (PROD.combos || []).map((c) => {
+    const nb = (c.bebidas_opcoes || []).length;
+    const info = `${brl(c.preco)} · ${c.qtd_pizzas} pizza${c.qtd_pizzas > 1 ? "s" : ""}${c.permite_meio ? " (meio a meio)" : ""}${nb ? ` · ${nb} bebida${nb > 1 ? "s" : ""} à escolha` : " · sem bebida"}`;
+    return `<div class="linha-g${c.ativo ? "" : " off"}">${fotoBtn("combo", c.id, c.foto_url, c.nome)}<div class="nm"><b>${esc(c.nome)}</b><small>${info}${tirarFoto("combo", c.id, c.foto_url)}</small></div>
+      ${sw(`data-tg="combo" data-id="${c.id}"`, c.ativo, "Disponível: " + c.nome)}<button class="lixo" data-del="combo" data-id="${c.id}" data-nome="${esc(c.nome)}" aria-label="Excluir ${esc(c.nome)}">×</button></div>`;
+  }).join("") || `<p class="vazio">Nenhum combo criado.</p>`;
+  const marcados = new Set([...document.querySelectorAll("#nComboBebs input:checked")].map((i) => i.value));
+  $("nComboBebs").innerHTML = bebs.map((b) => `<label><input type="checkbox" value="${b.ordem}" ${marcados.has(String(b.ordem)) ? "checked" : ""}> ${esc(b.nome)}</label>`).join("");
+}
+$("gHoras").addEventListener("change", (e) => {
+  const t = e.target.closest("[data-hab]"); if (!t) return;
+  e.stopPropagation();
+  t.closest(".dia").classList.toggle("off", !t.checked);
+});
+$("salvarHoras").addEventListener("click", async () => {
+  const dias = [0,1,2,3,4,5,6].map((d) => ({ dia_semana: d, aberto: document.querySelector(`[data-hab="${d}"]`).checked,
+    abre: document.querySelector(`[data-abre="${d}"]`).value, fecha: document.querySelector(`[data-fecha="${d}"]`).value }));
+  const falta = dias.find((d) => d.aberto && (!d.abre || !d.fecha));
+  if (falta) { $("mHoras").textContent = `Informe abertura e fechamento de ${NOMES_DIA[falta.dia_semana]}.`; return; }
+  $("mHoras").textContent = "";
+  try { await api("produto", "POST", { tipo: "horarios", acao: "salvar", dias, aceitar_fora_horario: $("swFora").checked }); $("mHoras").style.color = "var(--ok)"; $("mHoras").textContent = "Horários salvos."; }
+  catch (err) { $("mHoras").style.color = ""; $("mHoras").textContent = err.message; }
+  setTimeout(() => { $("mHoras").textContent = ""; $("mHoras").style.color = ""; }, 3000);
+  await carregarProdutos();
+});
+$("addCombo").addEventListener("click", async () => {
+  const nome = $("nComboNome").value.trim(), preco = $("nComboPreco").value.trim();
+  if (nome.length < 2 || !preco) { $("mCombo").textContent = "Digite o nome e o preço do combo."; return; }
+  const bebidas_opcoes = [...document.querySelectorAll("#nComboBebs input:checked")].map((i) => Number(i.value));
+  const ok = await gerir({ tipo: "combo", acao: "adicionar", nome, preco, descricao: $("nComboDesc").value.trim(), qtd_pizzas: Number($("nComboQtd").value), permite_meio: $("nComboMeio").checked, bebidas_opcoes }, "mCombo");
+  if (ok) { ["nComboNome","nComboDesc","nComboPreco"].forEach((k) => $(k).value = ""); document.querySelectorAll("#nComboBebs input").forEach((i) => i.checked = false); desenharCombosG(); }
+});
 function desenharGestao() {
   desenharModalidade();
-  $("gSabores").innerHTML = PROD.sabores.map((s) => `<div class="linha-g${s.ativo ? "" : " off"}"><div class="nm"><b>${esc(s.nome)}</b><small>${s.ativo ? "Disponível" : "Indisponível hoje"}</small></div>
+  desenharHoras();
+  desenharCombosG();
+  $("gSabores").innerHTML = PROD.sabores.map((s) => `<div class="linha-g${s.ativo ? "" : " off"}">${fotoBtn("sabor", s.id, s.foto_url, s.nome)}<div class="nm"><b>${esc(s.nome)}</b><small>${s.ativo ? "Disponível" : "Indisponível hoje"}${tirarFoto("sabor", s.id, s.foto_url)}</small></div>
     ${sw(`data-tg="sabor" data-id="${s.id}"`, s.ativo, "Disponível: " + s.nome)}<button class="lixo" data-del="sabor" data-id="${s.id}" data-nome="${esc(s.nome)}" aria-label="Excluir ${esc(s.nome)}">×</button></div>`).join("") || `<p class="vazio">Nenhum sabor cadastrado.</p>`;
-  $("gBebidas").innerHTML = PROD.bebidas.map((b) => `<div class="linha-g${b.ativo ? "" : " off"}"><div class="nm"><b>${esc(b.nome)}</b><small>${brl(b.preco)}${b.ativo ? "" : " · indisponível"}</small></div>
+  $("gBebidas").innerHTML = PROD.bebidas.map((b) => `<div class="linha-g${b.ativo ? "" : " off"}">${fotoBtn("bebida", b.id, b.foto_url, b.nome)}<div class="nm"><b>${esc(b.nome)}</b><small>${brl(b.preco)}${b.ativo ? "" : " · indisponível"}${tirarFoto("bebida", b.id, b.foto_url)}</small></div>
     ${sw(`data-tg="bebida" data-id="${b.id}"`, b.ativo, "Disponível: " + b.nome)}<button class="lixo" data-del="bebida" data-id="${b.id}" data-nome="${esc(b.nome)}" aria-label="Excluir ${esc(b.nome)}">×</button></div>`).join("") || `<p class="vazio">Nenhuma bebida cadastrada.</p>`;
   $("gCupons").innerHTML = PROD.cupons.map((c) => {
     const desc = c.tipo === "percentual" ? `${Number(c.valor)}% nas pizzas` : `${brl(c.valor)} nas pizzas`;
@@ -499,7 +647,7 @@ async function gerir(corpo, msgId) {
   try { await api("produto", "POST", corpo); await carregarProdutos(); return true; }
   catch (e) { $(msgId).textContent = e.message; await carregarProdutos(); return false; }
 }
-const msgDe = (t) => t === "sabor" ? "mSabor" : t === "bebida" ? "mBebida" : "mCupom";
+const msgDe = (t) => t === "sabor" ? "mSabor" : t === "bebida" ? "mBebida" : t === "combo" ? "mCombo" : "mCupom";
 $("vGestao").addEventListener("change", (e) => {
   const t = e.target.closest("[data-tg]"); if (!t) return;
   gerir({ tipo: t.dataset.tg, acao: "disponivel", id: Number(t.dataset.id), codigo: t.dataset.cod, ativo: t.checked }, msgDe(t.dataset.tg));

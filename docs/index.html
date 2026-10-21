@@ -75,6 +75,20 @@ section .dica{color:var(--muted);margin:0 0 14px;font-size:15px}
 .pizza .info{padding:10px 12px 12px}
 .pizza h3{font-size:18px;margin:0;line-height:1.2}
 .pizza .valor{color:var(--muted);font-size:14px;margin-top:2px}
+.combos{display:grid;gap:12px}
+.combo{display:flex;align-items:center;gap:14px;width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.combo .ic{flex:none;width:64px;height:64px;border-radius:14px;background:#1A120E;display:grid;place-items:center;font-size:30px}
+.combo img.ic{object-fit:cover}
+.beb-foto{width:52px;height:52px;border-radius:10px;object-fit:cover;flex:none;background:#1A120E}
+.combo .tx{flex:1;min-width:0}
+.combo h3{margin:0;font-size:19px}
+.combo p{margin:2px 0 0;color:var(--muted);font-size:14px}
+.combo .pr{font-family:Oswald,"Arial Narrow",sans-serif;font-weight:700;font-size:22px;color:var(--ember);white-space:nowrap}
+.combo.esgotado{opacity:.5;cursor:not-allowed}
+.combo.esgotado .pr{font-size:14px;color:var(--erro)}
+.cb-pizza{border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:10px;background:var(--surface)}
+.cb-pizza b{display:block;margin-bottom:6px}
+select.campo-sel{display:block;width:100%;margin-top:6px;font:inherit;color:var(--text);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
 .pizza .sem-foto{width:100%;aspect-ratio:2.6/1;display:grid;place-items:center;font-size:40px;background:#1A120E}
 .pizza.esgotado,.beb.esgotado{opacity:.5;cursor:not-allowed}
 .cupom-linha{display:flex;gap:8px}
@@ -199,12 +213,19 @@ label.campo textarea{min-height:64px;resize:vertical}
 
 <nav class="abas" aria-label="Categorias">
   <div class="wrap">
+    <a href="#combos" data-aba id="abaCombos" hidden>Combos</a>
     <a href="#pizzas" class="ativa" data-aba>Pizzas</a>
     <a href="#bebidas" data-aba>Bebidas</a>
   </div>
 </nav>
 
 <main class="wrap">
+  <section id="combos" hidden>
+    <h2>Combos</h2>
+    <p class="dica">Preço especial. Cupons de desconto não valem para combos.</p>
+    <div class="combos" id="listaCombos"></div>
+  </section>
+
   <section id="pizzas">
     <h2>Pizzas</h2>
     <p class="dica">Toque em um sabor para montar a sua. Dá para escolher dois sabores na mesma pizza.</p>
@@ -219,7 +240,7 @@ label.campo textarea{min-height:64px;resize:vertical}
 
   <footer>
     <p><b>Retirada:</b> Av. Rui Barbosa, 781 - Jardim Marista, Trindade - GO</p>
-    <p><b>Horário:</b> quarta e quinta das 18:30 às 23:30, sexta e sábado das 18:30 às 02:00, domingo das 18:30 às 23:00.</p>
+    <p id="horarioRodape"><b>Horário:</b> quarta e quinta das 18:30 às 23:30, sexta e sábado das 18:30 às 02:00, domingo das 18:30 às 23:00.</p>
     <p><b>Taxa de entrega por distância:</b> até 3 km R$ 5,00 · até 5 km R$ 6,00 · até 7 km R$ 8,00 · até 10 km R$ 12,00 · até 15 km R$ 15,00.</p>
     <div class="dev">
       <span>Desenvolvido por</span>
@@ -326,6 +347,29 @@ label.campo textarea{min-height:64px;resize:vertical}
   </div>
 </div>
 
+<!-- Montar combo -->
+<div class="painel" id="painelCombo" hidden role="dialog" aria-modal="true" aria-labelledby="cbNome">
+  <div class="folha">
+    <div class="folha-topo">
+      <div><h2 id="cbNome">Combo</h2><div style="color:var(--muted)" id="cbDesc"></div></div>
+      <button class="fechar" data-fechar aria-label="Fechar">×</button>
+    </div>
+    <img class="capa" id="cbImg" alt="" hidden>
+    <div id="cbPizzas"></div>
+    <div class="grupo" id="cbBebidaGrupo"><p>Bebida do combo</p><select class="campo-sel" id="cbBebida" aria-label="Bebida do combo"></select></div>
+    <label class="campo">Alguma observação? (opcional)<textarea id="cbObs" placeholder="Sem cebola, bem assada…"></textarea></label>
+    <div class="erro" id="cbErro"></div>
+    <div class="rodape-folha">
+      <div class="passo">
+        <button type="button" id="cbMenos" aria-label="Diminuir">−</button>
+        <b id="cbQtd">1</b>
+        <button type="button" class="mais" id="cbMais" aria-label="Aumentar">+</button>
+      </div>
+      <button class="principal" id="cbAdd">Adicionar</button>
+    </div>
+  </div>
+</div>
+
 <!-- Acompanhamento -->
 <div class="painel" id="painelAcomp" hidden role="dialog" aria-modal="true" aria-labelledby="acTitulo">
   <div class="folha">
@@ -351,7 +395,8 @@ const BEBIDAS = [
   ["Coca-Cola Original","1 litro",9.99],["Coca-Cola Original","2 litros",15.99],["Coca-Cola Zero Açúcar","2 litros",15.99],
   ["Fanta Laranja","2 litros",14.99],["Sprite","2 litros",14.99]
 ];
-const HORARIOS = {0:["18:30","23:00"],3:["18:30","23:30"],4:["18:30","23:30"],5:["18:30","02:00"],6:["18:30","02:00"]};
+let ACEITA_FORA = false;
+let HORARIOS = {0:["18:30","23:00"],3:["18:30","23:30"],4:["18:30","23:30"],5:["18:30","02:00"],6:["18:30","02:00"]};
 const DIAS = ["domingo","segunda","terça","quarta","quinta","sexta","sábado"];
 
 const $ = (id) => document.getElementById(id);
@@ -380,14 +425,34 @@ function situacao(){
   }
   return { aberto:false, abre:"em breve" };
 }
-const sit = situacao();
-$("statusTxt").textContent = sit.aberto ? `Aberto agora · até ${sit.ate}` : `Fechado · abre ${sit.abre}`;
-if (!sit.aberto) $("status").classList.add("fechado");
+let sit = situacao();
+function mostrarSituacao(){
+  sit = situacao();
+  $("statusTxt").textContent = sit.aberto ? `Aberto agora · até ${sit.ate}` : `Fechado · abre ${sit.abre}`;
+  $("status").classList.toggle("fechado", !sit.aberto);
+}
+function desenharHorarioRodape(){
+  const nomes = ["Domingo","Segunda","Terça","Quarta","Quinta","Sexta","Sábado"];
+  const partes = [1,2,3,4,5,6,0].filter((d) => HORARIOS[d]).map((d) => `${nomes[d]} ${HORARIOS[d][0]} às ${HORARIOS[d][1]}`);
+  $("horarioRodape").innerHTML = "<b>Horário:</b> " + esc(partes.join(" · ") || "a confirmar") + ".";
+}
+function atualizarBloqueio(){
+  const semModal = typeof MODAL !== "undefined" && !MODAL.entrega && !MODAL.retirada;
+  const fechado = !sit.aberto && !ACEITA_FORA;
+  $("enviar").disabled = semModal || fechado;
+  $("enviar").textContent = fechado ? `Fechado agora · abre ${sit.abre}` : "Enviar pedido pelo WhatsApp";
+}
+mostrarSituacao();
 
 /* ---------- Sacola ---------- */
 let sacola = [];
 try { sacola = JSON.parse(localStorage.getItem("aforja-sacola") || "[]"); } catch(e) { sacola = []; }
-sacola = sacola.filter((i) => (i.tipo === "pizza" && Array.isArray(i.sabores)) || (i.tipo === "bebida" && i.ordem));
+sacola = sacola.filter((i) => (i.tipo === "pizza" && Array.isArray(i.sabores)) || (i.tipo === "bebida" && i.ordem) || (i.tipo === "combo" && i.combo_id));
+function itemParaApi(i){
+  if (i.tipo === "pizza") return { tipo:"pizza", sabores:i.sabores, obs:i.obs, qtd:i.qtd };
+  if (i.tipo === "combo") return { tipo:"combo", combo_id:i.combo_id, pizzas:i.pizzas, bebida_ordem:i.bebida_ordem, obs:i.obs, qtd:i.qtd };
+  return { tipo:"bebida", ordem:i.ordem, qtd:i.qtd };
+}
 sacola.forEach((i) => { if (i.tipo === "bebida") i.chave = "beb" + i.ordem; });
 const salvar = () => { try { localStorage.setItem("aforja-sacola", JSON.stringify(sacola)); } catch(e) {} };
 const subtotal = () => sacola.reduce((s,i) => s + i.preco*i.qtd, 0);
@@ -416,6 +481,7 @@ const fotoDe = (nome) => FOTO_NOME[String(nome).toLowerCase()] || null;
 let MENU = {
   sabores: SABORES.map((nome) => ({ nome, ativo: true })),
   bebidas: BEBIDAS.map(([n, t, p], k) => ({ ordem: k + 1, nome: n, detalhe: t, preco: p, ativo: true })),
+  combos: [],
 };
 async function carregarCardapio(){
   try {
@@ -425,10 +491,17 @@ async function carregarCardapio(){
     if (!Array.isArray(d.sabores) || !d.sabores.length) return;
     PRECO = Number(d.preco_pizza) || PRECO; if (d.acrescimo_dois_sabores != null) MEIO = Number(d.acrescimo_dois_sabores);
     MENU = {
-      sabores: d.sabores.map((s) => ({ nome: s.nome, ativo: !!s.ativo })),
-      bebidas: (d.bebidas || []).map((b) => ({ ordem: b.ordem, nome: b.nome, detalhe: "", preco: Number(b.preco), ativo: !!b.ativo })),
+      sabores: d.sabores.map((s) => ({ nome: s.nome, ativo: !!s.ativo, foto_url: s.foto_url || null })),
+      combos: (d.combos || []).map((c) => ({ ...c, preco: Number(c.preco), bebidas_opcoes: (c.bebidas_opcoes || []).map(Number) })),
+      bebidas: (d.bebidas || []).map((b) => ({ ordem: b.ordem, nome: b.nome, detalhe: "", preco: Number(b.preco), ativo: !!b.ativo, foto_url: b.foto_url || null })),
     };
     MODAL = { entrega: d.entrega_ativa !== false, retirada: d.retirada_ativa !== false };
+    if (Array.isArray(d.horarios) && d.horarios.length) {
+      HORARIOS = {};
+      d.horarios.forEach((h) => { if (h.aberto && h.abre && h.fecha) HORARIOS[h.dia_semana] = [h.abre, h.fecha]; });
+    }
+    ACEITA_FORA = d.aceitar_fora_horario === true;
+    mostrarSituacao(); desenharHorarioRodape(); desenharCombos(); atualizarBloqueio();
     aplicarModalidades();
     desenharPizzas(); desenharBebidas(); atualizarBarra();
   } catch (e) { /* sem conexão: usa a lista reserva */ }
@@ -442,7 +515,7 @@ function desenharPizzas(){
     const b = document.createElement("button");
     b.className = "pizza" + (s.ativo ? "" : " esgotado"); b.type = "button";
     b.disabled = !s.ativo;
-    const foto = fotoDe(s.nome);
+    const foto = s.foto_url || fotoDe(s.nome);
     b.innerHTML = (foto ? `<img src="${foto}" alt="Pizza de ${esc(s.nome)}" loading="lazy">` : `<div class="sem-foto" aria-hidden="true">🍕</div>`) +
       `<div class="info"><h3>${esc(s.nome)}</h3><div class="valor">${s.ativo ? brl(PRECO) : "Indisponível hoje"}</div></div>`;
     if (s.ativo) b.addEventListener("click", () => abrirPizza(i));
@@ -461,7 +534,7 @@ function atualizarPizza(){
   document.querySelectorAll("#pzSegundo .opcao").forEach((o) => o.classList.toggle("marcada", o.querySelector("input").checked));
 }
 function abrirPizza(i){
-  const nome = MENU.sabores[i].nome, foto = fotoDe(nome);
+  const nome = MENU.sabores[i].nome, foto = MENU.sabores[i].foto_url || fotoDe(nome);
   pz = { i, modo:1, segundo:null, qtd:1 };
   $("pzNome").textContent = nome;
   $("pzImg").hidden = !foto;
@@ -483,10 +556,67 @@ $("pzAdd").addEventListener("click", () => {
   fechar("painelPizza");
 });
 
+/* ---------- Combos ---------- */
+function desenharCombos(){
+  const lista = MENU.combos || [];
+  $("combos").hidden = !lista.length; $("abaCombos").hidden = !lista.length;
+  $("listaCombos").innerHTML = lista.map((c, k) => `<button type="button" class="combo${c.ativo ? "" : " esgotado"}" data-combo="${k}" ${c.ativo ? "" : "disabled"}>
+    ${c.foto_url ? `<img class="ic" src="${esc(c.foto_url)}" alt="" loading="lazy">` : `<span class="ic" aria-hidden="true">🍕</span>`}
+    <span class="tx"><h3>${esc(c.nome)}</h3><p>${esc(c.descricao || "")}</p></span>
+    <span class="pr">${c.ativo ? brl(c.preco) : "Indisponível hoje"}</span></button>`).join("");
+}
+$("listaCombos").addEventListener("click", (e) => { const b = e.target.closest("[data-combo]"); if (b && !b.disabled) abrirCombo(Number(b.dataset.combo)); });
+let cb = { k:0, qtd:1 };
+function opcoesSabor(vazio){
+  return (vazio ? `<option value="">${vazio}</option>` : `<option value="" disabled selected>Escolha o sabor</option>`) +
+    MENU.sabores.filter((s) => s.ativo).map((s) => `<option>${esc(s.nome)}</option>`).join("");
+}
+function abrirCombo(k){
+  const c = MENU.combos[k];
+  cb = { k, qtd:1 };
+  $("cbImg").hidden = !c.foto_url; if (c.foto_url) { $("cbImg").src = c.foto_url; $("cbImg").alt = c.nome; }
+  $("cbNome").textContent = c.nome; $("cbDesc").textContent = (c.descricao ? c.descricao + " · " : "") + brl(c.preco);
+  $("cbPizzas").innerHTML = Array.from({ length: c.qtd_pizzas }, (_, i) => `<div class="cb-pizza"><b>Pizza ${c.qtd_pizzas > 1 ? i + 1 + " " : ""}(grande, 8 pedaços)</b>
+    <select class="campo-sel" data-sab1="${i}" aria-label="Sabor da pizza ${i + 1}">${opcoesSabor()}</select>
+    ${c.permite_meio ? `<select class="campo-sel" data-sab2="${i}" aria-label="Outra metade da pizza ${i + 1}">${opcoesSabor("Pizza inteira (1 sabor)")}</select>` : ""}</div>`).join("");
+  const bebs = MENU.bebidas.filter((b) => b.ativo && c.bebidas_opcoes.includes(Number(b.ordem)));
+  $("cbBebidaGrupo").hidden = !c.bebidas_opcoes.length;
+  $("cbBebida").innerHTML = `<option value="" disabled selected>Escolha a bebida</option>` + bebs.map((b) => `<option value="${b.ordem}">${esc(b.nome)}</option>`).join("");
+  $("cbObs").value = ""; $("cbErro").textContent = "";
+  atualizarCombo(); abrir("painelCombo");
+}
+function atualizarCombo(){
+  const c = MENU.combos[cb.k];
+  $("cbQtd").textContent = cb.qtd;
+  $("cbAdd").textContent = `Adicionar · ${brl(c.preco * cb.qtd)}`;
+}
+$("cbMenos").addEventListener("click", () => { if (cb.qtd > 1) { cb.qtd--; atualizarCombo(); } });
+$("cbMais").addEventListener("click", () => { cb.qtd++; atualizarCombo(); });
+$("cbAdd").addEventListener("click", () => {
+  const c = MENU.combos[cb.k];
+  const pizzas = [];
+  for (let i = 0; i < c.qtd_pizzas; i++) {
+    const s1 = document.querySelector(`[data-sab1="${i}"]`).value, s2El = document.querySelector(`[data-sab2="${i}"]`);
+    if (!s1) { $("cbErro").textContent = `Escolha o sabor da pizza${c.qtd_pizzas > 1 ? " " + (i + 1) : ""}.`; return; }
+    const s2 = s2El ? s2El.value : "";
+    pizzas.push({ sabores: s2 && s2 !== s1 ? [s1, s2] : [s1] });
+  }
+  let bebida_ordem = null, bebNome = "";
+  if (c.bebidas_opcoes.length) {
+    bebida_ordem = Number($("cbBebida").value);
+    if (!bebida_ordem) { $("cbErro").textContent = "Escolha a bebida do combo."; return; }
+    bebNome = MENU.bebidas.find((b) => Number(b.ordem) === bebida_ordem)?.nome || "";
+  }
+  const obs = $("cbObs").value.trim();
+  const desc = pizzas.map((p) => "Pizza " + p.sabores.join(" / ")).concat(bebNome ? [bebNome] : []).join(" + ");
+  adicionar({ chave:"cb|" + c.id + "|" + JSON.stringify(pizzas) + "|" + bebida_ordem + "|" + obs, tipo:"combo", combo_id:c.id, pizzas, bebida_ordem, nome:`${c.nome}: ${desc}`, obs, preco:c.preco, qtd:cb.qtd });
+  fechar("painelCombo");
+});
+
 /* ---------- Bebidas ---------- */
 function desenharBebidas(){
   $("listaBebidas").innerHTML = MENU.bebidas.map((b, k) =>
-    `<div class="beb${b.ativo ? "" : " esgotado"}"><div class="nome">${esc(b.nome)}<span>${b.detalhe ? esc(b.detalhe) + " · " : ""}${b.ativo ? brl(b.preco) : "Indisponível hoje"}</span></div>
+    `<div class="beb${b.ativo ? "" : " esgotado"}">${b.foto_url ? `<img class="beb-foto" src="${esc(b.foto_url)}" alt="" loading="lazy">` : ""}<div class="nome">${esc(b.nome)}<span>${b.detalhe ? esc(b.detalhe) + " · " : ""}${b.ativo ? brl(b.preco) : "Indisponível hoje"}</span></div>
      ${b.ativo ? `<div class="passo"><button type="button" data-menos="${k}" aria-label="Remover ${esc(b.nome)}">−</button><b data-beb="beb${b.ordem}">0</b><button type="button" class="mais" data-mais="${k}" aria-label="Adicionar ${esc(b.nome)}">+</button></div>` : ""}</div>`).join("");
 }
 desenharBebidas();
@@ -562,7 +692,10 @@ function desenharSacola(){
     <div class="passo" style="margin-top:6px"><button type="button" data-q="${esc(it.chave)}" data-d="-1" aria-label="Diminuir">−</button><b>${it.qtd}</b><button type="button" class="mais" data-q="${esc(it.chave)}" data-d="1" aria-label="Aumentar">+</button></div></div></div>`).join("");
   $("scItens").querySelectorAll("[data-q]").forEach((b) => b.addEventListener("click", () => mudarQtd(b.dataset.q, Number(b.dataset.d))));
   desenharTotais();
-  $("scAvisoHorario").innerHTML = sit.aberto ? "" : `<div class="aviso alerta">Estamos fechados agora. Você pode enviar o pedido, e ele será atendido quando abrirmos (${esc(sit.abre)}).</div>`;
+  $("scAvisoHorario").innerHTML = sit.aberto ? "" : ACEITA_FORA
+    ? `<div class="aviso alerta">Estamos fechados agora. Você pode enviar o pedido, e ele será atendido quando abrirmos (${esc(sit.abre)}).</div>`
+    : `<div class="aviso alerta">Estamos fechados agora. Os pedidos voltam ${esc(sit.abre)}. Sua sacola fica guardada até lá.</div>`;
+  atualizarBloqueio();
 }
 $("abrirSacola").addEventListener("click", () => { desenharSacola(); abrir("painelSacola"); });
 
@@ -583,7 +716,7 @@ function aplicarModalidades(){
   $("fModalAviso").textContent = nenhum ? "Os pedidos online estão pausados no momento. Fale com a loja pelo WhatsApp (62) 99127-4120."
     : !MODAL.entrega ? "No momento não estamos fazendo entregas. Você pode retirar no balcão."
     : "No momento estamos fazendo apenas entregas.";
-  $("enviar").disabled = nenhum;
+  atualizarBloqueio();
   $("modalidadeTxt").textContent = "Jardim Marista, Trindade · " + (nenhum ? "pedidos online pausados" : !MODAL.entrega ? "somente retirada no momento" : !MODAL.retirada ? "somente entrega no momento" : "entrega e retirada");
   if (tipo === "entrega" && !MODAL.entrega && MODAL.retirada) escolherTipo("retirada");
   else if (tipo === "retirada" && !MODAL.retirada && MODAL.entrega) escolherTipo("entrega");
@@ -623,7 +756,7 @@ $("enviar").addEventListener("click", async () => {
     endereco: { rua: $("fRua").value.trim(), bairro: $("fBairro").value.trim(), ref: $("fRef").value.trim() },
     local: tipo === "entrega" ? local : null,
     cupom: cupomInfo ? cupomInfo.codigo : null,
-    itens: sacola.map((i) => i.tipo === "pizza" ? { tipo:"pizza", sabores:i.sabores, obs:i.obs, qtd:i.qtd } : { tipo:"bebida", ordem:i.ordem, qtd:i.qtd }),
+    itens: sacola.map(itemParaApi),
   };
 
   let numero = null, codigo = null;
@@ -691,7 +824,7 @@ async function aplicarCupom(){
   if (!codigo) { msgCupom("Digite o código do cupom.", "ruim"); return; }
   $("fCupomBtn").disabled = true; msgCupom("Conferindo…");
   try {
-    const itens = sacola.map((i) => i.tipo === "pizza" ? { tipo:"pizza", sabores:i.sabores, qtd:i.qtd } : { tipo:"bebida", ordem:i.ordem, qtd:i.qtd });
+    const itens = sacola.map(itemParaApi);
     const r = await fetch(API + "?acao=cupom", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ codigo, itens }) });
     const d = await r.json().catch(() => ({}));
     if (!r.ok) { cupomInfo = null; msgCupom(esc(d.erro || "Cupom inválido."), "ruim"); }
