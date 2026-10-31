@@ -123,6 +123,18 @@ footer b{color:var(--text)}
 [hidden]{display:none !important}
 
 /* Painéis */
+/* ---------- Aviso do meio a meio ---------- */
+.mm-ov{position:fixed;inset:0;z-index:70;background:rgba(10,6,4,.55);display:flex;align-items:center;justify-content:center;padding:24px}
+.mm-ov[hidden]{display:none}
+.mm{width:100%;max-width:330px;background:var(--surface);color:var(--text);border-radius:18px;padding:22px 20px 16px;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.35)}
+@media (prefers-reduced-motion:no-preference){.mm{animation:cpEntra .22s ease-out}}
+.mm .mm-ic{width:70px;height:70px;border-radius:50%;margin:0 auto 10px;background:var(--ember-soft);display:grid;place-items:center;font-size:34px}
+.mm h3{font-family:Oswald,"Arial Narrow",sans-serif;font-size:24px;margin:0}
+.mm h3 b{color:var(--ember)}
+.mm p{color:var(--muted);font-size:15px;margin:8px 0 16px}
+.mm .mm-ok{display:block;width:100%;border:0;background:var(--ember);color:var(--on-ember);font-weight:700;font-size:16px;border-radius:12px;padding:13px}
+.mm .mm-nao{display:block;width:100%;border:0;background:none;color:var(--muted);font-weight:700;font-size:14.5px;padding:11px 0 2px}
+.cb-pizza .cb-extra{display:block;font-size:13px;color:var(--muted);font-weight:400;margin-top:2px}
 /* ---------- Pop-up de cupom ---------- */
 .cp-ov{position:fixed;inset:0;z-index:60;background:rgba(10,6,4,.62);display:flex;align-items:center;justify-content:center;padding:20px}
 .cp-ov[hidden]{display:none}
@@ -309,6 +321,17 @@ label.campo textarea{min-height:64px;resize:vertical}
       </div>
       <button class="principal" id="pzAdd">Adicionar · R$ 34,99</button>
     </div>
+  </div>
+</div>
+
+<!-- Aviso: meio a meio custa mais -->
+<div class="mm-ov" id="mmOv" hidden role="alertdialog" aria-modal="true" aria-labelledby="mmTit" aria-describedby="mmTxt">
+  <div class="mm">
+    <div class="mm-ic" aria-hidden="true">🍕</div>
+    <h3 id="mmTit">Meio a meio: <b id="mmValor">+ R$ 5,00</b></h3>
+    <p id="mmTxt">A pizza com 2 sabores custa R$ 5,00 a mais. O valor já foi somado ao pedido.</p>
+    <button type="button" class="mm-ok" id="mmOk">Entendi</button>
+    <button type="button" class="mm-nao" id="mmNao">Prefiro 1 sabor</button>
   </div>
 </div>
 
@@ -601,7 +624,28 @@ function abrirPizza(i){
   $("pzSegundo").querySelectorAll("input").forEach((r) => r.addEventListener("change", () => { pz.segundo = Number(r.value); $("pzErro").textContent = ""; atualizarPizza(); }));
   atualizarPizza(); abrir("painelPizza");
 }
-document.querySelectorAll("#pzModo button").forEach((b) => b.addEventListener("click", () => { pz.modo = Number(b.dataset.modo); atualizarPizza(); }));
+/* Aviso do acréscimo do meio a meio (pizza avulsa e combos) */
+let mmVoltar = null;
+function avisarMeio(voltar){
+  mmVoltar = voltar;
+  $("mmValor").textContent = "+ " + brl(MEIO);
+  $("mmTxt").textContent = `A pizza com 2 sabores custa ${brl(MEIO)} a mais. O valor já foi somado ao pedido.`;
+  $("mmOv").hidden = false; $("mmOk").focus();
+}
+function fecharMeio(voltar){
+  $("mmOv").hidden = true;
+  if (voltar && mmVoltar) mmVoltar();
+  mmVoltar = null;
+}
+$("mmOk").addEventListener("click", () => fecharMeio(false));
+$("mmNao").addEventListener("click", () => fecharMeio(true));
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("mmOv").hidden) { e.stopPropagation(); fecharMeio(false); } }, true);
+
+document.querySelectorAll("#pzModo button").forEach((b) => b.addEventListener("click", () => {
+  const antes = pz.modo;
+  pz.modo = Number(b.dataset.modo); atualizarPizza();
+  if (pz.modo === 2 && antes !== 2 && MEIO > 0) avisarMeio(() => { pz.modo = 1; atualizarPizza(); });
+}));
 $("pzMenos").addEventListener("click", () => { if (pz.qtd > 1) { pz.qtd--; atualizarPizza(); } });
 $("pzMais").addEventListener("click", () => { pz.qtd++; atualizarPizza(); });
 $("pzAdd").addEventListener("click", () => {
@@ -629,22 +673,38 @@ function opcoesSabor(vazio){
 }
 function abrirCombo(k){
   const c = MENU.combos[k];
-  cb = { k, qtd:1 };
+  cb = { k, qtd:1, meio:{} };
   $("cbImg").hidden = !c.foto_url; if (c.foto_url) { $("cbImg").src = c.foto_url; $("cbImg").alt = c.nome; }
   $("cbNome").textContent = c.nome; $("cbDesc").textContent = (c.descricao ? c.descricao + " · " : "") + brl(c.preco);
-  $("cbPizzas").innerHTML = Array.from({ length: c.qtd_pizzas }, (_, i) => `<div class="cb-pizza"><b>Pizza ${c.qtd_pizzas > 1 ? i + 1 + " " : ""}(grande, 8 pedaços)</b>
+  const brot = c.tamanho === "brotinho", meioOk = c.permite_meio && !brot;   // brotinho: sempre 1 sabor
+  const tam = brot ? "brotinho, 1 sabor" : "grande, 8 pedaços";
+  $("cbPizzas").innerHTML = Array.from({ length: c.qtd_pizzas }, (_, i) => `<div class="cb-pizza"><b>Pizza ${c.qtd_pizzas > 1 ? i + 1 + " " : ""}(${tam})${meioOk && MEIO > 0 ? `<span class="cb-extra">Meio a meio: + ${brl(MEIO)}</span>` : ""}</b>
     <select class="campo-sel" data-sab1="${i}" aria-label="Sabor da pizza ${i + 1}">${opcoesSabor()}</select>
-    ${c.permite_meio ? `<select class="campo-sel" data-sab2="${i}" aria-label="Outra metade da pizza ${i + 1}">${opcoesSabor("Pizza inteira (1 sabor)")}</select>` : ""}</div>`).join("");
+    ${meioOk ? `<select class="campo-sel" data-sab2="${i}" aria-label="Outra metade da pizza ${i + 1}">${opcoesSabor("Pizza inteira (1 sabor)")}</select>` : ""}</div>`).join("");
+  $("cbPizzas").querySelectorAll("select").forEach((sel) => sel.addEventListener("change", () => {
+    const i = sel.dataset.sab1 ?? sel.dataset.sab2;
+    const era = cb.meio[i], agora = pizzaMeio(i);
+    cb.meio[i] = agora; atualizarCombo();
+    if (agora && !era && MEIO > 0) avisarMeio(() => { const s2 = document.querySelector(`[data-sab2="${i}"]`); if (s2) s2.value = ""; cb.meio[i] = false; atualizarCombo(); });
+  }));
   const bebs = MENU.bebidas.filter((b) => b.ativo && c.bebidas_opcoes.includes(Number(b.ordem)));
   $("cbBebidaGrupo").hidden = !c.bebidas_opcoes.length;
   $("cbBebida").innerHTML = `<option value="" disabled selected>Escolha a bebida</option>` + bebs.map((b) => `<option value="${b.ordem}">${esc(b.nome)}</option>`).join("");
   $("cbObs").value = ""; $("cbErro").textContent = "";
   atualizarCombo(); abrir("painelCombo");
 }
-function atualizarCombo(){
+function pizzaMeio(i){
+  const s1 = document.querySelector(`[data-sab1="${i}"]`), s2 = document.querySelector(`[data-sab2="${i}"]`);
+  return !!(s2 && s2.value && s2.value !== (s1 ? s1.value : ""));
+}
+function precoCombo(){
   const c = MENU.combos[cb.k];
+  let meios = 0; for (let i = 0; i < c.qtd_pizzas; i++) if (pizzaMeio(i)) meios++;
+  return Math.round((c.preco + meios * MEIO) * 100) / 100;
+}
+function atualizarCombo(){
   $("cbQtd").textContent = cb.qtd;
-  $("cbAdd").textContent = `Adicionar · ${brl(c.preco * cb.qtd)}`;
+  $("cbAdd").textContent = `Adicionar · ${brl(precoCombo() * cb.qtd)}`;
 }
 $("cbMenos").addEventListener("click", () => { if (cb.qtd > 1) { cb.qtd--; atualizarCombo(); } });
 $("cbMais").addEventListener("click", () => { cb.qtd++; atualizarCombo(); });
@@ -655,7 +715,7 @@ $("cbAdd").addEventListener("click", () => {
     const s1 = document.querySelector(`[data-sab1="${i}"]`).value, s2El = document.querySelector(`[data-sab2="${i}"]`);
     if (!s1) { $("cbErro").textContent = `Escolha o sabor da pizza${c.qtd_pizzas > 1 ? " " + (i + 1) : ""}.`; return; }
     const s2 = s2El ? s2El.value : "";
-    pizzas.push({ sabores: s2 && s2 !== s1 ? [s1, s2] : [s1] });
+    pizzas.push({ sabores: s2 && s2 !== s1 && c.tamanho !== "brotinho" ? [s1, s2] : [s1] });
   }
   let bebida_ordem = null, bebNome = "";
   if (c.bebidas_opcoes.length) {
@@ -664,8 +724,9 @@ $("cbAdd").addEventListener("click", () => {
     bebNome = MENU.bebidas.find((b) => Number(b.ordem) === bebida_ordem)?.nome || "";
   }
   const obs = $("cbObs").value.trim();
-  const desc = pizzas.map((p) => "Pizza " + p.sabores.join(" / ")).concat(bebNome ? [bebNome] : []).join(" + ");
-  adicionar({ chave:"cb|" + c.id + "|" + JSON.stringify(pizzas) + "|" + bebida_ordem + "|" + obs, tipo:"combo", combo_id:c.id, pizzas, bebida_ordem, nome:`${c.nome}: ${desc}`, obs, preco:c.preco, qtd:cb.qtd });
+  const tamNome = c.tamanho === "brotinho" ? "Pizza Brotinho " : "Pizza ";
+  const desc = pizzas.map((p) => tamNome + p.sabores.join(" / ")).concat(bebNome ? [bebNome] : []).join(" + ");
+  adicionar({ chave:"cb|" + c.id + "|" + JSON.stringify(pizzas) + "|" + bebida_ordem + "|" + obs, tipo:"combo", combo_id:c.id, pizzas, bebida_ordem, nome:`${c.nome}: ${desc}`, obs, preco:precoCombo(), qtd:cb.qtd });
   fechar("painelCombo");
 });
 

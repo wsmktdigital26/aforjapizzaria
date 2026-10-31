@@ -126,6 +126,27 @@ details.final summary{cursor:pointer;color:var(--muted);font-size:14px;margin-bo
 .toast button{margin-left:auto;border:0;background:none;color:#FFB18C;font-weight:700;padding:4px 6px}
 .popup-cupom{display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:0 0 12px;font-size:14px}
 .popup-cupom select{flex:1;min-width:150px;border:1px solid var(--line);border-radius:8px;padding:6px 8px;background:var(--surface)}
+/* ---------- Combos: edição ---------- */
+.editar{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:5px 9px;font-size:13px;font-weight:700;cursor:pointer}
+.novo-cupom.editando{outline:2px solid var(--gold);outline-offset:6px;border-radius:6px}
+.tag-brot{display:inline-block;background:var(--gold-soft);color:var(--gold);border-radius:999px;font-size:11px;font-weight:700;padding:1px 7px;margin-left:6px;vertical-align:1px}
+/* ---------- Ajustar foto (cortar e redimensionar) ---------- */
+.cr-ov{position:fixed;inset:0;z-index:55;background:rgba(23,16,12,.6);display:flex;align-items:center;justify-content:center;padding:16px}
+.cr-ov[hidden]{display:none}
+.cr{width:100%;max-width:720px;max-height:96vh;overflow:auto;background:var(--surface);color:var(--text);border-radius:18px;padding:18px 20px;box-shadow:0 30px 70px rgba(0,0,0,.35)}
+.cr-topo{display:flex;align-items:center;justify-content:space-between}
+.cr-topo h2{margin:0;font-size:22px}
+.cr-area{margin-top:12px;background:repeating-conic-gradient(var(--line) 0 25%,var(--bg) 0 50%) 0 0/18px 18px;border-radius:12px;display:flex;justify-content:center;align-items:center;min-height:180px;overflow:hidden}
+.cr-area canvas{display:block;max-width:100%;cursor:grab;touch-action:none;box-shadow:0 0 0 2px var(--ember)}
+.cr-area canvas.arrastando{cursor:grabbing}
+.cr-linha{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px 14px;margin-top:12px;font-size:14px;align-items:end}
+.cr-linha label{display:grid;gap:4px;font-weight:700;font-size:13px;color:var(--muted)}
+.cr-linha label{min-width:0}
+.cr-linha select{width:100%;min-width:0;border:1px solid var(--line);border-radius:8px;padding:6px 8px;background:var(--bg);color:var(--text);font-weight:400}
+.cr-linha .btn{justify-self:start}
+.cr-linha input[type=range]{width:100%;accent-color:var(--ember)}
+.cr-info{font-size:13px;color:var(--muted);margin-top:10px}
+.cr-bts{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
 /* ---------- Acompanhamento ---------- */
 .acomp{padding:16px 20px 40px;display:grid;gap:14px}
 .ac-sec{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px}
@@ -294,10 +315,12 @@ details.final summary{cursor:pointer;color:var(--muted);font-size:14px;margin-bo
         <input id="nComboDesc" placeholder="Descrição: 2 pizzas + refri 2L" maxlength="120" style="grid-column:1/-1">
         <input id="nComboPreco" inputmode="decimal" placeholder="Preço: 79,90">
         <select id="nComboQtd" aria-label="Quantidade de pizzas"><option value="1">1 pizza</option><option value="2">2 pizzas</option><option value="3">3 pizzas</option><option value="4">4 pizzas</option></select>
-        <label style="grid-column:1/-1;display:flex;align-items:center;gap:8px;font-size:14px"><input type="checkbox" id="nComboMeio" checked> Permitir meio a meio nas pizzas do combo</label>
+        <select id="nComboTam" aria-label="Tamanho das pizzas do combo" style="grid-column:1/-1"><option value="grande">Pizza grande (8 pedaços)</option><option value="brotinho">Pizza brotinho (só em combo, 1 sabor)</option></select>
+        <label style="grid-column:1/-1;display:flex;align-items:center;gap:8px;font-size:14px"><input type="checkbox" id="nComboMeio" checked> <span>Permitir meio a meio <span style="color:var(--muted)" id="nComboMeioTxt">(+ R$ 5,00 por pizza com 2 sabores)</span></span></label>
         <div style="grid-column:1/-1;font-size:13px;color:var(--muted)">Bebidas que o cliente pode escolher (nenhuma = combo sem bebida):</div>
         <div class="chk-bebs" id="nComboBebs" style="grid-column:1/-1"></div>
         <button class="btn prim" id="addCombo">Criar combo</button>
+        <button class="btn" id="cancelCombo" hidden style="grid-column:1/-1">Cancelar edição</button>
       </div>
       <div class="msg-g" id="mCombo"></div>
     </div>
@@ -410,6 +433,34 @@ details.final summary{cursor:pointer;color:var(--muted);font-size:14px;margin-bo
 </div>
 <div class="toast" id="toast" hidden role="status"><span class="ic">✓</span><span id="toastTxt"></span><button type="button" id="toastDesfazer">Desfazer</button></div>
 
+<!-- Ajustar foto: cortar e redimensionar antes de enviar -->
+<div class="cr-ov" id="crOv" hidden role="dialog" aria-modal="true" aria-labelledby="crTit">
+  <div class="cr">
+    <div class="cr-topo"><h2 id="crTit">Ajustar foto</h2><button type="button" class="lixo" id="crX" aria-label="Fechar">×</button></div>
+    <div class="cr-area" id="crArea"><canvas id="crCanvas" aria-label="Prévia do corte. Arraste para posicionar."></canvas></div>
+    <p class="dica" style="margin:8px 0 0">Arraste a foto para escolher o que aparece. O contorno laranja é o que o cliente vai ver.</p>
+    <div class="cr-linha">
+      <label>Formato do corte
+        <select id="crFormato">
+          <option value="2.6">Faixa (recomendado)</option>
+          <option value="1">Quadrado</option>
+          <option value="1.3333">Retangular 4:3</option>
+          <option value="0">Inteira, sem cortar</option>
+        </select></label>
+      <label>Zoom <input type="range" id="crZoom" min="1" max="4" step="0.01" value="1" aria-label="Zoom"></label>
+      <label>Tamanho final
+        <select id="crTam">
+          <option value="600">Pequena · 600 px</option>
+          <option value="900" selected>Média · 900 px</option>
+          <option value="1200">Grande · 1200 px</option>
+        </select></label>
+      <button type="button" class="btn" id="crGirar">↻ Girar</button>
+    </div>
+    <div class="cr-info" id="crInfo"></div>
+    <div class="cr-bts"><button type="button" class="btn" id="crCancelar">Cancelar</button><button type="button" class="btn prim" id="crSalvar">Salvar foto</button></div>
+  </div>
+</div>
+
 <div id="impressao"></div>
 <input type="file" id="arqFoto" accept="image/jpeg,image/png,image/webp,image/*" hidden>
 
@@ -472,10 +523,12 @@ let demoProd = {
   aceitar_fora_horario: false,
   horarios: [0,1,2,3,4,5,6].map((d) => ({ dia_semana: d, aberto: [0,3,4,5,6].includes(d), abre: [0,3,4,5,6].includes(d) ? "18:30" : "", fecha: d === 0 ? "23:00" : [3,4].includes(d) ? "23:30" : [5,6].includes(d) ? "02:00" : "" })),
   combos: [{ id: 1, nome: "Combo Forja", descricao: "1 pizza grande + refrigerante 2L", preco: 47.99, qtd_pizzas: 1, permite_meio: true, bebidas_opcoes: [5,6,7,8], ativo: true },
-           { id: 2, nome: "Combo Família", descricao: "2 pizzas grandes + refrigerante 2L", preco: 84.9, qtd_pizzas: 2, permite_meio: true, bebidas_opcoes: [5,6], ativo: true }],
+           { id: 2, nome: "Combo Família", descricao: "2 pizzas grandes + refrigerante 2L", preco: 84.9, qtd_pizzas: 2, permite_meio: true, bebidas_opcoes: [5,6], ativo: true },
+           { id: 3, nome: "Combo Brotinho", descricao: "1 pizza brotinho + refrigerante 350ml", preco: 24.9, qtd_pizzas: 1, tamanho: "brotinho", permite_meio: false, bebidas_opcoes: [1,2,3], ativo: true }],
   sabores: ["Calabresa","Frango com Catupiry","Carne Seca","Bacon","Marguerita","Mussarela","Calabacon","Portuguesa","Carne Seca Goiana","Bacon Especial","Carne Seca Cremosa","Frango","Frango com Bacon","Presunto","Frango Cheddar"].map((nome, i) => ({ id: i + 1, nome, ordem: i + 1, ativo: nome !== "Carne Seca" })),
   bebidas: [["Coca-Cola Original 350ml",5.99],["Coca-Cola Zero Açúcar 350ml",5.99],["Sprite 350ml",5.99],["Coca-Cola Original 1L",9.99],["Coca-Cola Original 2L",15.99],["Coca-Cola Zero Açúcar 2L",15.99],["Fanta Laranja 2L",14.99],["Sprite 2L",14.99]].map(([nome, preco], i) => ({ id: i + 1, nome, preco, ordem: i + 1, ativo: i !== 6 })),
   cupom_popup: "BEMVINDO5",
+  acrescimo_meio: 5,
   cupons: [{ codigo: "PIZZA10", tipo: "percentual", valor: 10, minimo: null, validade: null, uso_max: null, usos: 3, ativo: true },
            { codigo: "BEMVINDO5", tipo: "valor", valor: 5, minimo: 39.99, validade: null, uso_max: 50, usos: 12, ativo: true }],
 };
@@ -495,8 +548,10 @@ function apiDemo(acao, corpo) {
     if (typeof corpo.aceitar_fora_horario === "boolean") demoProd.aceitar_fora_horario = corpo.aceitar_fora_horario;
     return { ok: true };
   }
-  if (acao === "produto" && corpo.tipo === "combo" && corpo.acao === "adicionar") {
-    demoProd.combos.push({ id: Date.now(), nome: corpo.nome, descricao: corpo.descricao, preco: Number(String(corpo.preco).replace(",", ".")), qtd_pizzas: Number(corpo.qtd_pizzas), permite_meio: corpo.permite_meio, bebidas_opcoes: corpo.bebidas_opcoes, ativo: true });
+  if (acao === "produto" && corpo.tipo === "combo" && (corpo.acao === "adicionar" || corpo.acao === "editar")) {
+    const dados = { nome: corpo.nome, descricao: corpo.descricao, preco: Number(String(corpo.preco).replace(",", ".")), qtd_pizzas: Number(corpo.qtd_pizzas), tamanho: corpo.tamanho, permite_meio: corpo.permite_meio, bebidas_opcoes: corpo.bebidas_opcoes };
+    if (corpo.acao === "editar") Object.assign(demoProd.combos.find((c) => c.id === corpo.id) || {}, dados);
+    else demoProd.combos.push({ id: Date.now(), ...dados, ativo: true });
     return { ok: true };
   }
   if (acao === "produto" && corpo.tipo === "modalidade") {
@@ -594,6 +649,9 @@ function botoes(p) {
   if (p.status === "aguardando_pagamento") b.push(`<button class="btn ok" data-st="recebido" data-id="${p.id}">Pix confirmado</button>`);
   if (p.status === "recebido") b.push(`<button class="btn prim" data-st="em_preparo" data-id="${p.id}">Em preparo</button>`);
   if (p.status === "em_preparo") b.push(`<button class="btn prim" data-st="${pronto[0]}" data-id="${p.id}">${pronto[1]}</button>`);
+  // Voltar uma etapa (clicou errado)
+  if (p.status === "em_preparo") b.push(`<button class="btn" data-st="recebido" data-id="${p.id}" title="Voltar o pedido para Novos">↩ Voltar p/ Novos</button>`);
+  if (["saiu_entrega", "pronto_retirada"].includes(p.status)) b.push(`<button class="btn" data-st="em_preparo" data-id="${p.id}" title="Voltar o pedido para Em preparo">↩ Voltar p/ preparo</button>`);
   b.push(`<button class="btn" data-imprimir="${p.id}">Imprimir</button>`);
   b.push(`<a class="btn" style="text-decoration:none;color:var(--ok)" href="${linkAviso(p)}" target="_blank" rel="noopener">Avisar cliente</a>`);
   if (!["entregue", "cancelado"].includes(p.status)) b.push(`<button class="btn perigo" data-st="cancelado" data-id="${p.id}">Cancelar</button>`);
@@ -750,15 +808,95 @@ $("vGestao").addEventListener("click", async (e) => {
 $("arqFoto").addEventListener("change", async () => {
   const arq = $("arqFoto").files[0];
   if (!arq || !alvoFoto) return;
-  const { tipo, id, botao } = alvoFoto;
+  const { tipo } = alvoFoto;
   $(msgFoto(tipo)).textContent = "";
-  botao.classList.add("enviando"); botao.textContent = "…";
+  try { await abrirCorte(arq, tipo); }
+  catch (err) { $(msgFoto(tipo)).textContent = "Não consegui ler essa imagem. Use uma foto JPG ou PNG."; }
+});
+
+/* ---------- Ajustar foto: cortar, girar e redimensionar ---------- */
+const CR = { fonte: null, aspecto: 2.6, zoom: 1, cx: 0, cy: 0, arraste: null };
+async function abrirCorte(arquivo, tipo) {
+  const url = URL.createObjectURL(arquivo);
   try {
-    const imagem = await prepararImagem(arq);
-    await api("foto", "POST", { tipo, id, imagem });
-  } catch (err) {
-    $(msgFoto(tipo)).textContent = err?.message && !/load|decode/i.test(err.message) ? err.message : "Não consegui ler essa imagem. Use uma foto JPG ou PNG.";
-  }
+    const img = await new Promise((ok, erro) => { const i = new Image(); i.onload = () => ok(i); i.onerror = erro; i.src = url; });
+    const c = document.createElement("canvas"); c.width = img.naturalWidth; c.height = img.naturalHeight;
+    c.getContext("2d").drawImage(img, 0, 0);
+    CR.fonte = c;
+  } finally { URL.revokeObjectURL(url); }
+  // Bebidas aparecem quadradas no cardápio; sabores e combos em faixa
+  $("crFormato").value = tipo === "bebida" ? "1" : "2.6";
+  CR.aspecto = Number($("crFormato").value); CR.zoom = 1; $("crZoom").value = "1";
+  CR.cx = CR.fonte.width / 2; CR.cy = CR.fonte.height / 2;
+  $("crOv").hidden = false; desenharCorte(); infoCorte();
+}
+function retanguloCorte() {
+  const W = CR.fonte.width, H = CR.fonte.height;
+  if (!CR.aspecto) return { x: 0, y: 0, w: W, h: H };
+  let w, h;
+  if (W / H > CR.aspecto) { h = H; w = h * CR.aspecto; } else { w = W; h = w / CR.aspecto; }
+  w /= CR.zoom; h /= CR.zoom;
+  CR.cx = Math.min(W - w / 2, Math.max(w / 2, CR.cx)); CR.cy = Math.min(H - h / 2, Math.max(h / 2, CR.cy));
+  return { x: CR.cx - w / 2, y: CR.cy - h / 2, w, h };
+}
+function desenharCorte() {
+  const r = retanguloCorte(), cv = $("crCanvas");
+  const larg = Math.min(660, $("crArea").clientWidth || 660), alt = Math.min(420, larg * r.h / r.w);
+  const escala = Math.min(larg / r.w, alt / r.h);
+  cv.width = Math.round(r.w * escala); cv.height = Math.round(r.h * escala);
+  cv.getContext("2d").drawImage(CR.fonte, r.x, r.y, r.w, r.h, 0, 0, cv.width, cv.height);
+  $("crZoom").disabled = !CR.aspecto;
+}
+function gerarFinal() {
+  const r = retanguloCorte(), lado = Number($("crTam").value);
+  const k = Math.min(1, lado / Math.max(r.w, r.h));
+  const out = document.createElement("canvas"); out.width = Math.round(r.w * k); out.height = Math.round(r.h * k);
+  const ctx = out.getContext("2d"); ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, out.width, out.height);
+  ctx.imageSmoothingQuality = "high"; ctx.drawImage(CR.fonte, r.x, r.y, r.w, r.h, 0, 0, out.width, out.height);
+  return { dados: out.toDataURL("image/jpeg", 0.82), w: out.width, h: out.height };
+}
+let infoT = null;
+function infoCorte() {
+  clearTimeout(infoT);
+  infoT = setTimeout(() => {
+    const f = gerarFinal(), kb = Math.round(f.dados.length * 0.75 / 1024);
+    $("crInfo").textContent = `Foto final: ${f.w} × ${f.h} px · cerca de ${kb} KB (original: ${CR.fonte.width} × ${CR.fonte.height} px)`;
+  }, 150);
+}
+$("crFormato").addEventListener("change", () => { CR.aspecto = Number($("crFormato").value); CR.zoom = 1; $("crZoom").value = "1"; desenharCorte(); infoCorte(); });
+$("crZoom").addEventListener("input", () => { CR.zoom = Number($("crZoom").value); desenharCorte(); infoCorte(); });
+$("crTam").addEventListener("change", infoCorte);
+$("crGirar").addEventListener("click", () => {
+  const f = CR.fonte, c = document.createElement("canvas"); c.width = f.height; c.height = f.width;
+  const ctx = c.getContext("2d"); ctx.translate(c.width, 0); ctx.rotate(Math.PI / 2); ctx.drawImage(f, 0, 0);
+  CR.fonte = c; CR.cx = c.width / 2; CR.cy = c.height / 2; desenharCorte(); infoCorte();
+});
+$("crCanvas").addEventListener("pointerdown", (e) => {
+  if (!CR.aspecto) return;
+  CR.arraste = { x: e.clientX, y: e.clientY }; $("crCanvas").setPointerCapture(e.pointerId); $("crCanvas").classList.add("arrastando");
+});
+$("crCanvas").addEventListener("pointermove", (e) => {
+  if (!CR.arraste) return;
+  const r = retanguloCorte(), k = r.w / $("crCanvas").clientWidth;
+  CR.cx -= (e.clientX - CR.arraste.x) * k; CR.cy -= (e.clientY - CR.arraste.y) * k;
+  CR.arraste = { x: e.clientX, y: e.clientY }; desenharCorte();
+});
+["pointerup", "pointercancel"].forEach((ev) => $("crCanvas").addEventListener(ev, () => { if (CR.arraste) { CR.arraste = null; $("crCanvas").classList.remove("arrastando"); infoCorte(); } }));
+$("crCanvas").addEventListener("wheel", (e) => {
+  if (!CR.aspecto) return; e.preventDefault();
+  CR.zoom = Math.min(4, Math.max(1, CR.zoom * (e.deltaY < 0 ? 1.08 : 1 / 1.08))); $("crZoom").value = String(CR.zoom); desenharCorte(); infoCorte();
+}, { passive: false });
+function fecharCorte() { $("crOv").hidden = true; CR.fonte = null; }
+$("crX").addEventListener("click", fecharCorte);
+$("crCancelar").addEventListener("click", fecharCorte);
+$("crSalvar").addEventListener("click", async () => {
+  if (!CR.fonte || !alvoFoto) return;
+  const { tipo, id, botao } = alvoFoto;
+  const { dados } = gerarFinal();
+  fecharCorte();
+  botao.classList.add("enviando"); botao.textContent = "…";
+  try { await api("foto", "POST", { tipo, id, imagem: dados }); }
+  catch (err) { $(msgFoto(tipo)).textContent = err.message; }
   await carregarProdutos();
 });
 
@@ -776,10 +914,13 @@ function desenharCombosG() {
   const bebs = PROD.bebidas || [];
   $("gCombos").innerHTML = (PROD.combos || []).map((c) => {
     const nb = (c.bebidas_opcoes || []).length;
-    const info = `${brl(c.preco)} · ${c.qtd_pizzas} pizza${c.qtd_pizzas > 1 ? "s" : ""}${c.permite_meio ? " (meio a meio)" : ""}${nb ? ` · ${nb} bebida${nb > 1 ? "s" : ""} à escolha` : " · sem bebida"}`;
-    return `<div class="linha-g${c.ativo ? "" : " off"}">${fotoBtn("combo", c.id, c.foto_url, c.nome)}<div class="nm"><b>${esc(c.nome)}</b><small>${info}${tirarFoto("combo", c.id, c.foto_url)}</small></div>
+    const brot = c.tamanho === "brotinho";
+    const info = `${brl(c.preco)} · ${c.qtd_pizzas} pizza${c.qtd_pizzas > 1 ? "s" : ""} ${brot ? "brotinho (1 sabor)" : "grande" + (c.qtd_pizzas > 1 ? "s" : "")}${c.permite_meio && !brot ? " (meio a meio + " + brl(PROD.acrescimo_meio ?? 5) + ")" : ""}${nb ? ` · ${nb} bebida${nb > 1 ? "s" : ""} à escolha` : " · sem bebida"}`;
+    return `<div class="linha-g${c.ativo ? "" : " off"}">${fotoBtn("combo", c.id, c.foto_url, c.nome)}<div class="nm"><b>${esc(c.nome)}${brot ? '<span class="tag-brot">BROTINHO</span>' : ""}</b><small>${info}${tirarFoto("combo", c.id, c.foto_url)}</small></div>
+      <button type="button" class="editar" data-editcombo="${c.id}" aria-label="Editar ${esc(c.nome)}">✏️ Editar</button>
       ${sw(`data-tg="combo" data-id="${c.id}"`, c.ativo, "Disponível: " + c.nome)}<button class="lixo" data-del="combo" data-id="${c.id}" data-nome="${esc(c.nome)}" aria-label="Excluir ${esc(c.nome)}">×</button></div>`;
   }).join("") || `<p class="vazio">Nenhum combo criado.</p>`;
+  $("nComboMeioTxt").textContent = `(+ ${brl(PROD.acrescimo_meio ?? 5)} por pizza com 2 sabores)`;
   const marcados = new Set([...document.querySelectorAll("#nComboBebs input:checked")].map((i) => i.value));
   $("nComboBebs").innerHTML = bebs.map((b) => `<label><input type="checkbox" value="${b.ordem}" ${marcados.has(String(b.ordem)) ? "checked" : ""}> ${esc(b.nome)}</label>`).join("");
 }
@@ -799,12 +940,46 @@ $("salvarHoras").addEventListener("click", async () => {
   setTimeout(() => { $("mHoras").textContent = ""; $("mHoras").style.color = ""; }, 3000);
   await carregarProdutos();
 });
+let comboEditando = null;
+/* Brotinho é sempre de 1 sabor: trava a opção de meio a meio */
+function ajustarMeioCombo() {
+  const brot = $("nComboTam").value === "brotinho";
+  if (brot) $("nComboMeio").checked = false;
+  $("nComboMeio").disabled = brot;
+  $("nComboMeio").closest("label").style.opacity = brot ? ".5" : "";
+  $("nComboMeio").closest("label").title = brot ? "Pizza brotinho é sempre de 1 sabor" : "";
+}
+$("nComboTam").addEventListener("change", () => { if ($("nComboTam").value === "grande") $("nComboMeio").checked = true; ajustarMeioCombo(); });
+function limparFormCombo() {
+  comboEditando = null;
+  ["nComboNome","nComboDesc","nComboPreco"].forEach((k) => $(k).value = "");
+  $("nComboQtd").value = "1"; $("nComboTam").value = "grande"; $("nComboMeio").checked = true;
+  document.querySelectorAll("#nComboBebs input").forEach((i) => i.checked = false);
+  $("addCombo").textContent = "Criar combo"; $("cancelCombo").hidden = true; ajustarMeioCombo();
+  $("addCombo").closest(".novo-cupom").classList.remove("editando");
+}
 $("addCombo").addEventListener("click", async () => {
   const nome = $("nComboNome").value.trim(), preco = $("nComboPreco").value.trim();
   if (nome.length < 2 || !preco) { $("mCombo").textContent = "Digite o nome e o preço do combo."; return; }
   const bebidas_opcoes = [...document.querySelectorAll("#nComboBebs input:checked")].map((i) => Number(i.value));
-  const ok = await gerir({ tipo: "combo", acao: "adicionar", nome, preco, descricao: $("nComboDesc").value.trim(), qtd_pizzas: Number($("nComboQtd").value), permite_meio: $("nComboMeio").checked, bebidas_opcoes }, "mCombo");
-  if (ok) { ["nComboNome","nComboDesc","nComboPreco"].forEach((k) => $(k).value = ""); document.querySelectorAll("#nComboBebs input").forEach((i) => i.checked = false); desenharCombosG(); }
+  const ok = await gerir({ tipo: "combo", acao: comboEditando ? "editar" : "adicionar", id: comboEditando, nome, preco, descricao: $("nComboDesc").value.trim(),
+    qtd_pizzas: Number($("nComboQtd").value), tamanho: $("nComboTam").value, permite_meio: $("nComboMeio").checked, bebidas_opcoes }, "mCombo");
+  if (ok) { limparFormCombo(); desenharCombosG(); }
+});
+$("cancelCombo").addEventListener("click", () => { limparFormCombo(); $("mCombo").textContent = ""; });
+$("gCombos").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-editcombo]"); if (!b) return;
+  const c = (PROD.combos || []).find((x) => String(x.id) === b.dataset.editcombo); if (!c) return;
+  comboEditando = c.id;
+  $("nComboNome").value = c.nome || ""; $("nComboDesc").value = c.descricao || "";
+  $("nComboPreco").value = String(Number(c.preco).toFixed(2)).replace(".", ",");
+  $("nComboQtd").value = String(c.qtd_pizzas || 1); $("nComboTam").value = c.tamanho === "brotinho" ? "brotinho" : "grande";
+  $("nComboMeio").checked = c.permite_meio !== false; ajustarMeioCombo();
+  const sel = new Set((c.bebidas_opcoes || []).map(String));
+  document.querySelectorAll("#nComboBebs input").forEach((i) => i.checked = sel.has(i.value));
+  $("addCombo").textContent = "Salvar alterações"; $("cancelCombo").hidden = false; $("mCombo").textContent = "";
+  const caixa = $("addCombo").closest(".novo-cupom"); caixa.classList.add("editando");
+  caixa.scrollIntoView({ behavior: "smooth", block: "center" }); $("nComboNome").focus({ preventScroll: true });
 });
 function desenharGestao() {
   desenharModalidade();
@@ -1034,8 +1209,8 @@ function saboresDoItem(it) {
   // "Pizza Grande A / B" ou "Combo X: Pizza Grande A / B + Pizza Grande C + Bebida"
   const partes = it.tipo === "combo" ? String(it.descricao).split(": ").slice(1).join(": ").split(" + ") : [it.descricao];
   const r = [];
-  partes.filter((x) => /^Pizza Grande /.test(x)).forEach((x) => {
-    const sab = x.replace(/^Pizza Grande /, "").split(" / ").map((s) => s.trim()).filter(Boolean);
+  partes.filter((x) => /^Pizza (Grande|Brotinho) /.test(x)).forEach((x) => {
+    const sab = x.replace(/^Pizza (Grande|Brotinho) /, "").split(" / ").map((s) => s.trim()).filter(Boolean);
     sab.forEach((s) => r.push([s, it.quantidade / sab.length]));
   });
   return r;
