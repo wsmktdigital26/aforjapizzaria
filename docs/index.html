@@ -123,6 +123,29 @@ footer b{color:var(--text)}
 [hidden]{display:none !important}
 
 /* Painéis */
+/* ---------- Pop-up de cupom ---------- */
+.cp-ov{position:fixed;inset:0;z-index:60;background:rgba(10,6,4,.62);display:flex;align-items:center;justify-content:center;padding:20px}
+.cp-ov[hidden]{display:none}
+.cp{position:relative;width:100%;max-width:350px;background:var(--surface);color:var(--text);border-radius:22px;overflow:hidden;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.4)}
+@media (prefers-reduced-motion:no-preference){.cp{animation:cpEntra .28s ease-out}@keyframes cpEntra{from{transform:scale(.92);opacity:0}}}
+.cp-topo{background:radial-gradient(120% 90% at 50% 0%,#E2531A 0%,#C43E0C 55%,#8E2A06 100%);color:#fff;padding:24px 20px 34px;position:relative}
+.cp-topo .cp-x{position:absolute;right:10px;top:10px;width:34px;height:34px;border:0;border-radius:50%;background:rgba(255,255,255,.18);color:#fff;font-size:20px;line-height:34px;padding:0}
+.cp-eyb{font-size:12.5px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:#FFD9C4}
+.cp-topo h2{font-size:29px;line-height:1.1;margin:6px 0 0;color:#fff}
+.cp-conf i{position:absolute;width:8px;height:14px;border-radius:2px;opacity:.9}
+.cp-tk{margin:-20px 18px 0;position:relative;background:var(--bg);border:2px dashed var(--gold);border-radius:16px;padding:14px 14px 12px}
+.cp-off{font-family:Oswald,"Arial Narrow",sans-serif;font-weight:700;font-size:50px;line-height:1;color:var(--ember)}
+.cp-sub{font-size:14.5px;font-weight:700;margin-top:4px}
+.cp-cod{display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:7px 7px 7px 14px;margin-top:11px}
+.cp-cod b{font-family:Oswald,"Arial Narrow",sans-serif;font-weight:500;font-size:21px;letter-spacing:2px}
+.cp-cod button{border:0;background:var(--text);color:var(--bg);font-weight:700;font-size:13px;border-radius:7px;padding:8px 11px}
+.cp-corpo{padding:14px 20px 18px}
+.cp-tempo{display:inline-block;background:var(--ember-soft);color:var(--ember);font-size:12.5px;font-weight:700;border-radius:999px;padding:5px 11px;margin-bottom:12px}
+.cp-usar{display:block;width:100%;border:0;background:var(--ember);color:var(--on-ember);font-weight:700;font-size:16.5px;border-radius:12px;padding:14px}
+.cp-nao{display:block;width:100%;border:0;background:none;color:var(--muted);font-weight:700;font-size:14.5px;padding:11px 0 2px}
+.cp-reg{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.45}
+.cp-guardado{position:fixed;left:12px;right:12px;bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:25;max-width:520px;margin:0 auto;background:var(--ok);color:#fff;border-radius:12px;padding:11px 14px;font-size:14px;font-weight:700;box-shadow:0 8px 22px rgba(0,0,0,.2)}
+.cp-guardado[hidden]{display:none}
 .painel{position:fixed;inset:0;z-index:30;display:flex;align-items:flex-end;justify-content:center;background:rgba(10,6,4,.55)}
 .painel[hidden]{display:none}
 .folha{background:var(--bg);width:100%;max-width:560px;max-height:92vh;overflow-y:auto;border-radius:20px 20px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom,0px))}
@@ -138,6 +161,8 @@ footer b{color:var(--text)}
 .opcao{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
 .opcao input{accent-color:var(--ember);width:18px;height:18px}
 .opcao.marcada{border-color:var(--ember);background:var(--ember-soft)}
+.dica-loc{font-size:13px;color:var(--muted);margin:6px 2px 0}
+#fLocal.ok{border-color:var(--ok);color:var(--ok)}
 .segmento{display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));gap:6px}
 .segmento button{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:10px;font-weight:700}
 .segmento button[aria-pressed="true"]{border-color:var(--ember);background:var(--ember-soft);color:var(--ember)}
@@ -287,6 +312,34 @@ label.campo textarea{min-height:64px;resize:vertical}
   </div>
 </div>
 
+<!-- Pop-up de cupom de boas-vindas (o cupom é escolhido no painel) -->
+<div class="cp-ov" id="cpOv" hidden role="dialog" aria-modal="true" aria-labelledby="cpTitulo">
+  <div class="cp">
+    <div class="cp-topo">
+      <button type="button" class="cp-x" id="cpX" aria-label="Fechar">×</button>
+      <div class="cp-conf" aria-hidden="true">
+        <i style="left:22px;top:22px;background:#FFC233;transform:rotate(25deg)"></i><i style="left:50px;top:64px;background:#fff;transform:rotate(-30deg)"></i>
+        <i style="right:62px;top:56px;background:#FFC233;transform:rotate(-20deg)"></i><i style="left:36px;top:104px;background:#FFB18C;transform:rotate(60deg)"></i>
+        <i style="right:28px;top:100px;background:#fff;transform:rotate(15deg)"></i>
+      </div>
+      <div class="cp-eyb">Presente da casa</div>
+      <h2 id="cpTitulo">Você ganhou um<br>cupom de desconto!</h2>
+    </div>
+    <div class="cp-tk">
+      <div class="cp-off" id="cpOff"></div>
+      <div class="cp-sub" id="cpSub"></div>
+      <div class="cp-cod"><b id="cpCodigo"></b><button type="button" id="cpCopiar">Copiar</button></div>
+    </div>
+    <div class="cp-corpo">
+      <div class="cp-tempo" id="cpTempo" hidden></div>
+      <button type="button" class="cp-usar" id="cpUsar">Usar meu cupom agora</button>
+      <button type="button" class="cp-nao" id="cpNao">Agora não</button>
+      <div class="cp-reg">O desconto entra sozinho na sacola. Vale só para pizzas: não vale para combos, bebidas e taxa de entrega.</div>
+    </div>
+  </div>
+</div>
+<div class="cp-guardado" id="cpGuardado" hidden role="status"></div>
+
 <!-- Sacola e finalização -->
 <div class="painel" id="painelSacola" hidden role="dialog" aria-modal="true" aria-labelledby="scTitulo">
   <div class="folha" id="folhaSacola">
@@ -319,7 +372,8 @@ label.campo textarea{min-height:64px;resize:vertical}
         </div>
         <div class="aviso alerta" id="fModalAviso" hidden></div>
         <div id="fEndereco">
-          <button type="button" class="btn-sec" id="fLocal" style="width:100%;margin-top:10px">📍 Usar minha localização para calcular a taxa</button>
+          <button type="button" class="btn-sec" id="fLocal" style="width:100%;margin-top:10px">📍 Ativar minha localização</button>
+          <p class="dica-loc" id="fLocDica">Para entrega, a localização é obrigatória: é com ela que calculamos a taxa e o entregador chega até você.</p>
           <div class="aviso" id="fTaxaInfo" hidden></div>
           <label class="campo">Rua e número<input id="fRua" autocomplete="street-address" placeholder="Rua 5, nº 120"></label>
           <label class="campo">Bairro<input id="fBairro" placeholder="Jardim Marista"></label>
@@ -501,9 +555,11 @@ async function carregarCardapio(){
       d.horarios.forEach((h) => { if (h.aberto && h.abre && h.fecha) HORARIOS[h.dia_semana] = [h.abre, h.fecha]; });
     }
     ACEITA_FORA = d.aceitar_fora_horario === true;
+    CUPOM_POPUP = d.cupom_popup && d.cupom_popup.codigo ? d.cupom_popup : null;
     mostrarSituacao(); desenharHorarioRodape(); desenharCombos(); atualizarBloqueio();
     aplicarModalidades();
     desenharPizzas(); desenharBebidas(); atualizarBarra();
+    setTimeout(mostrarPopupCupom, 1200);
   } catch (e) { /* sem conexão: usa a lista reserva */ }
 }
 
@@ -697,7 +753,7 @@ function desenharSacola(){
     : `<div class="aviso alerta">Estamos fechados agora. Os pedidos voltam ${esc(sit.abre)}. Sua sacola fica guardada até lá.</div>`;
   atualizarBloqueio();
 }
-$("abrirSacola").addEventListener("click", () => { desenharSacola(); abrir("painelSacola"); });
+$("abrirSacola").addEventListener("click", () => { desenharSacola(); abrir("painelSacola"); aplicarCupomGuardado(); });
 
 let MODAL = { entrega: true, retirada: true };
 function escolherTipo(t){
@@ -743,6 +799,7 @@ $("enviar").addEventListener("click", async () => {
     troco = Number($("fTroco").value.replace(/[^\d,.]/g,"").replace(",","."));
     if (isNaN(troco) || troco < totalAtual()){ $("ePag").textContent = `O troco precisa ser para um valor maior que ${brl(totalAtual())}.`; ok = false; }
   }
+  if (tipo === "entrega" && !local){ $("eEnd").textContent = "Para entrega, toque em “Ativar minha localização”. Se não quiser compartilhar, escolha Retirada."; ok = false; $("fLocal").scrollIntoView({ behavior:"smooth", block:"center" }); }
   if (tipo === "entrega" && taxaInfo && taxaInfo.fora){ $("eEnd").textContent = `Esse endereço fica fora da nossa área de entrega (até ${taxaInfo.max} km). Escolha retirada no balcão.`; ok = false; }
   if (!ok) return;
   try { localStorage.setItem("aforja-nome", nome); localStorage.setItem("aforja-tel", tel); } catch(e) {}
@@ -770,7 +827,7 @@ $("enviar").addEventListener("click", async () => {
       if (tipo === "entrega" && dados.taxa > 0) taxaInfo = { taxa: dados.taxa, distancia: dados.distancia };
     }
     else if (r.status === 400){
-      $("ePag").textContent = dados.erro || "Confira os dados do pedido.";
+      $(/localiza|endere|bairro|rua|entregamos/i.test(dados.erro || "") ? "eEnd" : "ePag").textContent = dados.erro || "Confira os dados do pedido.";
       botao.disabled = false; botao.textContent = "Enviar pedido pelo WhatsApp"; return;
     }
   } catch(e) { /* sem conexão com o sistema: segue só pelo WhatsApp */ }
@@ -803,6 +860,7 @@ $("enviar").addEventListener("click", async () => {
 
   const url = `https://wa.me/${WHATS}?text=${encodeURIComponent(linhas.join("\n"))}`;
   sacola = []; salvar(); atualizarBarra();
+  if (cupomInfo) gravarLS("aforja-cupom-pend", null);
   $("folhaSacola").innerHTML = `<div class="ok"><h2>${numero ? "Pedido nº " + numero + " registrado!" : "Pedido pronto!"}</h2>
     <p>Agora toque no botão abaixo para enviar o pedido no WhatsApp da A Forja${taxaOk ? "" : tipo === "entrega" ? " e combinar a taxa de entrega" : ""}.</p>
     <div class="rodape-folha"><a class="principal" style="text-decoration:none;color:var(--on-ember)" href="${url}" target="_blank" rel="noopener">Enviar no WhatsApp</a></div>
@@ -816,6 +874,64 @@ const obs = new IntersectionObserver((ents) => ents.forEach((e) => {
   if (e.isIntersecting) abas.forEach((a) => a.classList.toggle("ativa", a.getAttribute("href") === "#" + e.target.id));
 }), { rootMargin: "-40% 0px -55% 0px" });
 document.querySelectorAll("main section").forEach((s) => obs.observe(s));
+
+/* ---------- Pop-up de cupom de boas-vindas ---------- */
+let CUPOM_POPUP = null;
+const lerLS = (k) => { try { return localStorage.getItem(k); } catch(e) { return null; } };
+const gravarLS = (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch(e) {} };
+function mostrarPopupCupom(){
+  const c = CUPOM_POPUP;
+  if (!c) return;
+  if (new URLSearchParams(location.search).get("pedido")) return;            // veio pelo link de acompanhamento
+  if (lerLS("aforja-popup-" + c.codigo)) return;                              // já viu este cupom neste aparelho
+  if (lerLS("aforja-cupom-pend") === c.codigo) return;                        // já guardou o cupom
+  if (!sit.aberto && !ACEITA_FORA) return;                                    // loja fechada e sem pedidos agendados
+  if (!MODAL.entrega && !MODAL.retirada) return;                              // pedidos online pausados
+  if (document.querySelector(".painel:not([hidden])")) return;                // cliente já está montando o pedido
+  $("cpOff").innerHTML = c.tipo === "percentual" ? `${esc(String(c.valor).replace(".", ","))}<small style="font-size:24px">%</small> OFF` : `${esc(brl(c.valor))} OFF`;
+  $("cpSub").textContent = "nas pizzas do seu pedido" + (c.minimo ? ` (a partir de ${brl(c.minimo)} em pizzas)` : "");
+  $("cpCodigo").textContent = c.codigo;
+  if (c.validade) {
+    const dt = new Date(c.validade);
+    const hoje = new Date().toLocaleDateString("pt-BR", { timeZone:"America/Sao_Paulo" }) === dt.toLocaleDateString("pt-BR", { timeZone:"America/Sao_Paulo" });
+    $("cpTempo").textContent = "⏱ Válido " + (hoje ? "só hoje" : "até " + dt.toLocaleDateString("pt-BR", { day:"2-digit", month:"2-digit", timeZone:"America/Sao_Paulo" }));
+    $("cpTempo").hidden = false;
+  }
+  ultimoFoco = document.activeElement;
+  $("cpOv").hidden = false; document.body.style.overflow = "hidden"; $("cpUsar").focus();
+}
+function fecharPopupCupom(){
+  if (CUPOM_POPUP) gravarLS("aforja-popup-" + CUPOM_POPUP.codigo, "1");
+  $("cpOv").hidden = true; document.body.style.overflow = "";
+}
+$("cpX").addEventListener("click", fecharPopupCupom);
+$("cpNao").addEventListener("click", fecharPopupCupom);
+$("cpOv").addEventListener("click", (e) => { if (e.target === $("cpOv")) fecharPopupCupom(); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("cpOv").hidden) fecharPopupCupom(); });
+$("cpCopiar").addEventListener("click", async () => {
+  try { await navigator.clipboard.writeText(CUPOM_POPUP.codigo); $("cpCopiar").textContent = "Copiado!"; }
+  catch(e) { $("cpCopiar").textContent = "Anote: " + CUPOM_POPUP.codigo; }
+});
+$("cpUsar").addEventListener("click", () => {
+  const cod = CUPOM_POPUP.codigo;
+  fecharPopupCupom();
+  gravarLS("aforja-cupom-pend", cod);
+  $("fCupom").value = cod;
+  avisoCupomGuardado(`🎁 Cupom ${cod} guardado! Ele entra sozinho quando você abrir a sacola.`);
+  if (temPizzaNaSacola()) aplicarCupomGuardado();
+});
+function avisoCupomGuardado(txt){
+  $("cpGuardado").textContent = txt; $("cpGuardado").hidden = false;
+  clearTimeout(avisoCupomGuardado.t); avisoCupomGuardado.t = setTimeout(() => { $("cpGuardado").hidden = true; }, 4500);
+}
+function temPizzaNaSacola(){ return sacola.some((it) => itemParaApi(it).tipo === "pizza"); }
+async function aplicarCupomGuardado(){
+  const cod = lerLS("aforja-cupom-pend");
+  if (!cod || cupomInfo || !temPizzaNaSacola()) return;
+  $("fCupom").value = cod;
+  await aplicarCupom();
+  if (!cupomInfo) gravarLS("aforja-cupom-pend", null); // cupom não vale mais: esquece
+}
 
 /* ---------- Cupom ---------- */
 function msgCupom(t, cls){ $("fCupomMsg").className = "cupom-msg" + (cls ? " " + cls : ""); $("fCupomMsg").innerHTML = t; }
@@ -842,27 +958,36 @@ $("fCupom").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.prev
 
 /* ---------- Localização e taxa ---------- */
 $("fLocal").addEventListener("click", () => {
-  if (!navigator.geolocation) { infoTaxa("Seu navegador não permite localização. A loja informa a taxa pelo WhatsApp."); return; }
+  if (!navigator.geolocation) { infoTaxa("Este navegador não permite localização. Abra o cardápio no Chrome ou no Safari, ou escolha Retirada.", true); return; }
   infoTaxa("Buscando sua localização…");
   $("fLocal").disabled = true;
   navigator.geolocation.getCurrentPosition(async (pos) => {
     local = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+    $("eEnd").textContent = "";
+    $("fLocal").classList.add("ok"); $("fLocal").textContent = "✓ Localização confirmada";
     try {
       const r = await fetch(API + "?acao=calcular_taxa", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(local) });
       const d = await r.json();
       if (!r.ok) throw new Error(d.erro);
       taxaInfo = d;
       if (d.fora) infoTaxa(`Você está a cerca de ${kmTxt(d.distancia)} km, e entregamos até ${d.max} km. Você pode escolher retirada no balcão.`, true);
-      else { infoTaxa(`Distância aproximada: ${kmTxt(d.distancia)} km · Taxa de entrega: ${brl(d.taxa)}`); $("eEnd").textContent = ""; }
+      else infoTaxa(`Distância aproximada: ${kmTxt(d.distancia)} km · Taxa de entrega: ${brl(d.taxa)}`);
     } catch (e) {
       taxaInfo = null;
-      infoTaxa("Não foi possível calcular a taxa agora. A loja informa o valor pelo WhatsApp.");
+      infoTaxa("Localização confirmada. A loja informa o valor da taxa pelo WhatsApp.");
     }
     $("fLocal").disabled = false;
     desenharTotais();
   }, (err) => {
     $("fLocal").disabled = false;
-    infoTaxa(err.code === 1 ? "Localização não permitida. Sem problemas: a loja informa a taxa pelo WhatsApp." : "Não conseguimos encontrar sua localização. A loja informa a taxa pelo WhatsApp.");
+    const ios = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if (err.code === 1) {
+      infoTaxa(ios
+        ? "A localização está bloqueada. No iPhone: Ajustes › Privacidade e Segurança › Serviços de Localização › Safari (ou Chrome) › “Durante o uso”. Depois toque de novo em “Ativar minha localização”. Se preferir, escolha Retirada."
+        : "A localização está bloqueada. Toque no cadeado ao lado do endereço do site › Permissões › Localização › Permitir. Depois toque de novo em “Ativar minha localização”. Se preferir, escolha Retirada.", true);
+    } else {
+      infoTaxa("Não conseguimos encontrar sua localização. Confira se a localização (GPS) do celular está ligada e tente de novo.", true);
+    }
   }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 });
 });
 
