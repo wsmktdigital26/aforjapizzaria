@@ -673,30 +673,39 @@ function opcoesSabor(vazio){
 }
 function abrirCombo(k){
   const c = MENU.combos[k];
-  cb = { k, qtd:1, meio:{} };
+  cb = { k, qtd:1, modo:{} };
   $("cbImg").hidden = !c.foto_url; if (c.foto_url) { $("cbImg").src = c.foto_url; $("cbImg").alt = c.nome; }
   $("cbNome").textContent = c.nome; $("cbDesc").textContent = (c.descricao ? c.descricao + " · " : "") + brl(c.preco);
   const brot = c.tamanho === "brotinho", meioOk = c.permite_meio && !brot;   // brotinho: sempre 1 sabor
   const tam = brot ? "brotinho, 1 sabor" : "grande, 8 pedaços";
-  $("cbPizzas").innerHTML = Array.from({ length: c.qtd_pizzas }, (_, i) => `<div class="cb-pizza"><b>Pizza ${c.qtd_pizzas > 1 ? i + 1 + " " : ""}(${tam})${meioOk && MEIO > 0 ? `<span class="cb-extra">Meio a meio: + ${brl(MEIO)}</span>` : ""}</b>
+  $("cbPizzas").innerHTML = Array.from({ length: c.qtd_pizzas }, (_, i) => `<div class="cb-pizza"><b>Pizza ${c.qtd_pizzas > 1 ? i + 1 + " " : ""}(${tam})</b>
+    ${meioOk ? `<div class="segmento" data-cbmodo="${i}" role="group" aria-label="Quantos sabores na pizza ${i + 1}" style="margin-bottom:8px">
+      <button type="button" data-m="1" aria-pressed="true">1 sabor</button>
+      <button type="button" data-m="2" aria-pressed="false">2 sabores${MEIO > 0 ? ` (+ ${brl(MEIO)})` : ""}</button></div>` : ""}
     <select class="campo-sel" data-sab1="${i}" aria-label="Sabor da pizza ${i + 1}">${opcoesSabor()}</select>
-    ${meioOk ? `<select class="campo-sel" data-sab2="${i}" aria-label="Outra metade da pizza ${i + 1}">${opcoesSabor("Pizza inteira (1 sabor)")}</select>` : ""}</div>`).join("");
-  $("cbPizzas").querySelectorAll("select").forEach((sel) => sel.addEventListener("change", () => {
-    const i = sel.dataset.sab1 ?? sel.dataset.sab2;
-    const era = cb.meio[i], agora = pizzaMeio(i);
-    cb.meio[i] = agora; atualizarCombo();
-    if (agora && !era && MEIO > 0) avisarMeio(() => { const s2 = document.querySelector(`[data-sab2="${i}"]`); if (s2) s2.value = ""; cb.meio[i] = false; atualizarCombo(); });
+    ${meioOk ? `<select class="campo-sel" data-sab2="${i}" aria-label="Sabor da outra metade da pizza ${i + 1}" hidden style="margin-top:8px">${opcoesSabor().replace("Escolha o sabor", "Escolha o sabor da outra metade")}</select>` : ""}</div>`).join("");
+  $("cbPizzas").querySelectorAll("[data-cbmodo] button").forEach((bt) => bt.addEventListener("click", () => {
+    const i = bt.closest("[data-cbmodo]").dataset.cbmodo, modo = Number(bt.dataset.m);
+    if (modo === (cb.modo[i] || 1)) return;
+    definirModoCombo(i, modo);
+    $("cbErro").textContent = "";
+    if (modo === 2 && MEIO > 0) avisarMeio(() => definirModoCombo(i, 1));
   }));
+  $("cbPizzas").querySelectorAll("select").forEach((sel) => sel.addEventListener("change", () => { $("cbErro").textContent = ""; }));
   const bebs = MENU.bebidas.filter((b) => b.ativo && c.bebidas_opcoes.includes(Number(b.ordem)));
   $("cbBebidaGrupo").hidden = !c.bebidas_opcoes.length;
   $("cbBebida").innerHTML = `<option value="" disabled selected>Escolha a bebida</option>` + bebs.map((b) => `<option value="${b.ordem}">${esc(b.nome)}</option>`).join("");
   $("cbObs").value = ""; $("cbErro").textContent = "";
   atualizarCombo(); abrir("painelCombo");
 }
-function pizzaMeio(i){
-  const s1 = document.querySelector(`[data-sab1="${i}"]`), s2 = document.querySelector(`[data-sab2="${i}"]`);
-  return !!(s2 && s2.value && s2.value !== (s1 ? s1.value : ""));
+function definirModoCombo(i, modo){
+  cb.modo[i] = modo;
+  document.querySelectorAll(`[data-cbmodo="${i}"] button`).forEach((b) => b.setAttribute("aria-pressed", String(Number(b.dataset.m) === modo)));
+  const s2 = document.querySelector(`[data-sab2="${i}"]`);
+  if (s2) { s2.hidden = modo !== 2; if (modo !== 2) s2.value = ""; }
+  atualizarCombo();
 }
+function pizzaMeio(i){ return cb.modo[i] === 2; }
 function precoCombo(){
   const c = MENU.combos[cb.k];
   let meios = 0; for (let i = 0; i < c.qtd_pizzas; i++) if (pizzaMeio(i)) meios++;
@@ -713,8 +722,11 @@ $("cbAdd").addEventListener("click", () => {
   const pizzas = [];
   for (let i = 0; i < c.qtd_pizzas; i++) {
     const s1 = document.querySelector(`[data-sab1="${i}"]`).value, s2El = document.querySelector(`[data-sab2="${i}"]`);
-    if (!s1) { $("cbErro").textContent = `Escolha o sabor da pizza${c.qtd_pizzas > 1 ? " " + (i + 1) : ""}.`; return; }
-    const s2 = s2El ? s2El.value : "";
+    const nomeP = `pizza${c.qtd_pizzas > 1 ? " " + (i + 1) : ""}`;
+    if (!s1) { $("cbErro").textContent = `Escolha o sabor da ${nomeP}.`; return; }
+    const s2 = s2El && pizzaMeio(i) ? s2El.value : "";
+    if (pizzaMeio(i) && !s2) { $("cbErro").textContent = `Escolha o sabor da outra metade da ${nomeP}.`; return; }
+    if (pizzaMeio(i) && s2 === s1) { $("cbErro").textContent = `Na ${nomeP}, escolha um sabor diferente para a outra metade (ou marque 1 sabor).`; return; }
     pizzas.push({ sabores: s2 && s2 !== s1 && c.tamanho !== "brotinho" ? [s1, s2] : [s1] });
   }
   let bebida_ordem = null, bebNome = "";
