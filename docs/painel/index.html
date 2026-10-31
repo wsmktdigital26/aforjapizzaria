@@ -534,7 +534,7 @@ let demoProd = {
 };
 function apiDemo(acao, corpo) {
   if (String(acao).startsWith("relatorio")) return relatorioDemo(acao);
-  if (acao === "pedidos") return { pedidos: JSON.parse(JSON.stringify(demoDados)), assinatura: { ativo_ate: new Date(Date.now() + 3 * 86400000).toISOString() } };
+  if (acao === "pedidos") return { pedidos: JSON.parse(JSON.stringify(demoDados)), assinatura: { ativo_ate: new Date(Date.now() + 3 * 86400000).toISOString(), em_teste: true, teste_inicio: new Date(Date.now() - 7 * 86400000).toISOString() } };
   if (acao === "produto" && corpo.tipo === "popup") { demoProd.cupom_popup = corpo.codigo || null; return { ok: true }; }
   if (acao === "produtos") return JSON.parse(JSON.stringify(demoProd));
   if (acao === "foto") {
@@ -621,7 +621,7 @@ async function carregar(primeira) {
   try {
     const dados = await api("pedidos");
     pedidos = dados.pedidos || [];
-    if (dados.assinatura) verAssinatura(dados.assinatura.ativo_ate);
+    if (dados.assinatura) verAssinatura(dados.assinatura);
     const novos = conhecidos ? pedidos.filter((p) => !conhecidos.has(p.id)) : [];
     conhecidos = new Set(pedidos.map((p) => p.id));
     desenhar(new Set(novos.map((p) => p.id)));
@@ -1136,8 +1136,9 @@ function toast(html, desfazer) {
 /* ---------- Assinatura (data em configuracoes.ativo_ate) ---------- */
 const MESES = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
 const SEMANA = ["domingo","segunda","terça","quarta","quinta","sexta","sábado"];
-function verAssinatura(ativoAte) {
+function verAssinatura(ass) {
   const chip = $("chipAss");
+  const ativoAte = ass && ass.ativo_ate, teste = !!(ass && ass.em_teste);   // teste = período de teste grátis
   if (!ativoAte) { chip.hidden = true; return; }
   const fim = new Date(ativoAte);
   if (isNaN(fim)) { chip.hidden = true; return; }
@@ -1145,8 +1146,9 @@ function verAssinatura(ativoAte) {
   const dataCurta = sp(fim, { day: "2-digit", month: "2-digit" });
   const ms = fim - Date.now(), dias = Math.ceil(ms / 86400000), vencida = ms <= 0;
   chip.hidden = false;
-  chip.textContent = vencida ? `● Assinatura vencida em ${dataCurta}` : `● Assinatura até ${dataCurta}`;
-  chip.className = "chip-ass" + (vencida ? " vencida" : dias <= AVISAR_DIAS_ANTES ? " perto" : "");
+  chip.textContent = teste ? (vencida ? `● Teste encerrado em ${dataCurta}` : `● Teste grátis até ${dataCurta}`)
+    : (vencida ? `● Assinatura vencida em ${dataCurta}` : `● Assinatura até ${dataCurta}`);
+  chip.className = "chip-ass" + (vencida ? " vencida" : teste || dias <= AVISAR_DIAS_ANTES ? " perto" : "");
   if (!vencida && dias > AVISAR_DIAS_ANTES) return;
   // Mostra 1x por dia (vencida: 1x a cada vez que o painel abre)
   const chave = "aforja-aviso-ass-" + sp(new Date(), { year: "numeric", month: "2-digit", day: "2-digit" });
@@ -1155,24 +1157,36 @@ function verAssinatura(ativoAte) {
   verAssinatura.mostrado = true;
   const dataLonga = sp(fim, { day: "2-digit", month: "2-digit", year: "numeric" });
   $("asCaixa").classList.toggle("vencida", vencida);
-  $("asFaixa").textContent = vencida ? "Assinatura vencida" : "Aviso da assinatura";
+  $("asFaixa").textContent = teste ? (vencida ? "Teste encerrado" : "Período de teste") : (vencida ? "Assinatura vencida" : "Aviso da assinatura");
   $("asMes").textContent = MESES[Number(sp(fim, { month: "numeric" })) - 1];
   $("asDia").textContent = sp(fim, { day: "2-digit" });
   $("asSem").textContent = SEMANA[new Date(fim.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" })).getDay()];
-  if (vencida) {
+  if (teste && vencida) {
+    $("asTitulo").innerHTML = "Seu período de teste <em>terminou</em>";
+    $("asTexto").innerHTML = `O teste grátis terminou em <b style="color:var(--text)">${dataLonga}</b> e o cardápio online parou de receber pedidos novos. Fale com a WS Solutions para ativar o plano e voltar a vender.`;
+  } else if (teste) {
+    $("asTitulo").innerHTML = `Seu teste grátis termina<br>${dias <= 1 ? "<em>amanhã</em>" : `em <em>${dias} dias</em>`}`;
+    $("asTexto").innerHTML = `Gostou do cardápio online, do painel da cozinha e do robô do WhatsApp? Para continuar recebendo pedidos depois de <b style="color:var(--text)">${dataLonga}</b>, fale com a WS Solutions e ative o seu plano.`;
+  } else if (vencida) {
     $("asTitulo").innerHTML = "Sua assinatura <em>venceu</em>";
     $("asTexto").innerHTML = `Venceu em <b style="color:var(--text)">${dataLonga}</b>. O cardápio online não está recebendo pedidos novos. Fale com a WS Solutions para renovar.`;
   } else {
     $("asTitulo").innerHTML = `Sua assinatura vence<br>${dias <= 1 ? "<em>amanhã</em>" : `em <em>${dias} dias</em>`}`;
     $("asTexto").innerHTML = `Renove até <b style="color:var(--text)">${dataLonga}</b> para o cardápio, o painel e o robô do WhatsApp continuarem recebendo pedidos.`;
   }
-  const ini = new Date(fim.getTime() - 30 * 86400000);
-  const usados = Math.min(30, Math.max(0, 30 - Math.max(0, dias)));
-  $("asBarI").style.width = Math.round(usados / 30 * 100) + "%";
+  // Barra: no teste usa a data de início gravada; na assinatura, um ciclo de 30 dias
+  const iniTeste = teste && ass.teste_inicio ? new Date(ass.teste_inicio) : null;
+  const total = iniTeste && !isNaN(iniTeste) ? Math.max(1, Math.round((fim - iniTeste) / 86400000)) : 30;
+  const ini = iniTeste && !isNaN(iniTeste) ? iniTeste : new Date(fim.getTime() - total * 86400000);
+  const usados = Math.min(total, Math.max(0, total - Math.max(0, dias)));
+  $("asBarI").style.width = Math.round(usados / total * 100) + "%";
   $("asIni").textContent = "Início: " + sp(ini, { day: "2-digit", month: "2-digit" });
-  $("asUsados").textContent = vencida ? "prazo encerrado" : `${usados} de 30 dias usados`;
-  $("asFim").textContent = "Vence: " + dataCurta;
-  const msg = `Olá, WS Solutions! Sou da A Forja Pizzaria e quero renovar a assinatura do sistema (${vencida ? "venceu" : "vence"} em ${dataLonga}).`;
+  $("asUsados").textContent = teste ? `${vencida ? total : usados} de ${total} dias de teste` : vencida ? "prazo encerrado" : `${usados} de ${total} dias usados`;
+  $("asFim").textContent = (teste ? (vencida ? "Terminou: " : "Termina: ") : "Vence: ") + dataCurta;
+  $("asBarra").hidden = teste && !(iniTeste && !isNaN(iniTeste));   // teste sem data de início: sem barra
+  const msg = teste
+    ? `Olá, WS Solutions! Sou da A Forja Pizzaria e quero ativar o plano do sistema (o teste ${vencida ? "terminou" : "termina"} em ${dataLonga}).`
+    : `Olá, WS Solutions! Sou da A Forja Pizzaria e quero renovar a assinatura do sistema (${vencida ? "venceu" : "vence"} em ${dataLonga}).`;
   $("asWs").href = `https://wa.me/${WS_WHATSAPP.replace(/\D/g, "")}?text=${encodeURIComponent(msg)}`;
   $("asOv").hidden = false;
   $("asX").onclick = () => { $("asOv").hidden = true; if (!vencida) { try { localStorage.setItem(chave, "1"); } catch (e) {} } };
