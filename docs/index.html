@@ -79,6 +79,11 @@ section .dica{color:var(--muted);margin:0 0 14px;font-size:15px}
 .combo{display:flex;align-items:center;gap:14px;width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
 .combo .ic{flex:none;width:64px;height:64px;border-radius:14px;background:#1A120E;display:grid;place-items:center;font-size:30px}
 .combo img.ic{object-fit:cover}
+/* Combo com foto: mostra a foto inteira, sem cortar */
+.combo.com-foto{flex-wrap:wrap;padding:10px 10px 14px}
+.combo .foto-combo{width:100%;height:auto;max-height:340px;object-fit:contain;border-radius:10px;background:#1A120E;display:block}
+.combo.com-foto .tx{padding-left:6px}
+.combo.com-foto .pr{padding-right:6px}
 .beb-foto{width:52px;height:52px;border-radius:10px;object-fit:cover;flex:none;background:#1A120E}
 .combo .tx{flex:1;min-width:0}
 .combo h3{margin:0;font-size:19px}
@@ -120,6 +125,8 @@ footer b{color:var(--text)}
 .barra{position:fixed;left:0;right:0;bottom:0;z-index:20;padding:10px 18px calc(10px + env(safe-area-inset-bottom,0px));background:linear-gradient(transparent,var(--bg) 40%)}
 .barra button{width:100%;max-width:560px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px;border:0;border-radius:14px;padding:14px 18px;background:var(--ember);color:var(--on-ember);font-weight:700;font-size:16px}
 .barra[hidden]{display:none}
+.barra-cupom{max-width:560px;margin:0 auto 6px;background:var(--ok);color:#fff;border-radius:10px;padding:7px 12px;font-size:13.5px;font-weight:700;display:flex;justify-content:space-between;gap:8px;box-shadow:0 6px 16px rgba(0,0,0,.15)}
+.barra-cupom[hidden]{display:none}
 [hidden]{display:none !important}
 
 /* Painéis */
@@ -156,7 +163,7 @@ footer b{color:var(--text)}
 .cp-usar{display:block;width:100%;border:0;background:var(--ember);color:var(--on-ember);font-weight:700;font-size:16.5px;border-radius:12px;padding:14px}
 .cp-nao{display:block;width:100%;border:0;background:none;color:var(--muted);font-weight:700;font-size:14.5px;padding:11px 0 2px}
 .cp-reg{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.45}
-.cp-guardado{position:fixed;left:12px;right:12px;bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:25;max-width:520px;margin:0 auto;background:var(--ok);color:#fff;border-radius:12px;padding:11px 14px;font-size:14px;font-weight:700;box-shadow:0 8px 22px rgba(0,0,0,.2)}
+.cp-guardado{position:fixed;left:12px;right:12px;bottom:calc(132px + env(safe-area-inset-bottom,0px));z-index:25;max-width:520px;margin:0 auto;background:var(--ok);color:#fff;border-radius:12px;padding:11px 14px;font-size:14px;font-weight:700;box-shadow:0 8px 22px rgba(0,0,0,.2)}
 .cp-guardado[hidden]{display:none}
 .painel{position:fixed;inset:0;z-index:30;display:flex;align-items:flex-end;justify-content:center;background:rgba(10,6,4,.55)}
 .painel[hidden]{display:none}
@@ -166,6 +173,7 @@ footer b{color:var(--text)}
 .folha h2{font-size:26px;margin:0}
 .fechar{border:0;background:var(--surface-2);width:36px;height:36px;border-radius:50%;font-size:20px;flex:none}
 .folha .capa{width:100%;aspect-ratio:2.6/1;object-fit:cover;border-radius:12px;margin:12px 0}
+.folha .capa.inteira{aspect-ratio:auto;height:auto;max-height:55vh;object-fit:contain;background:#1A120E}
 .grupo{margin-top:16px}
 .grupo>p{margin:0 0 8px;font-weight:700}
 .grupo>p span{font-weight:400;color:var(--muted)}
@@ -287,6 +295,7 @@ label.campo textarea{min-height:64px;resize:vertical}
 </main>
 
 <div class="barra" id="barra" hidden>
+  <div class="barra-cupom" id="barraCupom" hidden></div>
   <button id="abrirSacola"><span id="barraQtd">Ver sacola</span><span id="barraTotal">R$ 0,00</span></button>
 </div>
 
@@ -357,7 +366,7 @@ label.campo textarea{min-height:64px;resize:vertical}
       <div class="cp-tempo" id="cpTempo" hidden></div>
       <button type="button" class="cp-usar" id="cpUsar">Usar meu cupom agora</button>
       <button type="button" class="cp-nao" id="cpNao">Agora não</button>
-      <div class="cp-reg">O desconto entra sozinho na sacola. Vale só para pizzas: não vale para combos, bebidas e taxa de entrega.</div>
+      <div class="cp-reg">O desconto é aplicado na hora. Vale só para pizzas: não vale para combos, bebidas e taxa de entrega.</div>
     </div>
   </div>
 </div>
@@ -431,7 +440,7 @@ label.campo textarea{min-height:64px;resize:vertical}
       <div><h2 id="cbNome">Combo</h2><div style="color:var(--muted)" id="cbDesc"></div></div>
       <button class="fechar" data-fechar aria-label="Fechar">×</button>
     </div>
-    <img class="capa" id="cbImg" alt="" hidden>
+    <img class="capa inteira" id="cbImg" alt="" hidden>
     <div id="cbPizzas"></div>
     <div class="grupo" id="cbBebidaGrupo"><p>Bebida do combo</p><select class="campo-sel" id="cbBebida" aria-label="Bebida do combo"></select></div>
     <label class="campo">Alguma observação? (opcional)<textarea id="cbObs" placeholder="Sem cebola, bem assada…"></textarea></label>
@@ -539,7 +548,13 @@ function atualizarBarra(){
   const q = qtdTotal();
   $("barra").hidden = q === 0;
   $("barraQtd").textContent = `Ver sacola · ${q} ${q === 1 ? "item" : "itens"}`;
-  $("barraTotal").textContent = brl(subtotal());
+  let cup = null; try { cup = cupomInfo; } catch (e) { /* ainda carregando */ }
+  const desc = cup ? descontoAtual() : 0;
+  $("barraTotal").textContent = brl(subtotal() - desc);
+  if (cup) {
+    $("barraCupom").hidden = false;
+    $("barraCupom").innerHTML = `<span>🎁 Cupom ${esc(cup.codigo)} aplicado</span><span>${desc > 0 ? "− " + brl(desc) : cup.minimo ? "vale a partir de " + brl(cup.minimo) + " em pizzas" : "vale nas pizzas"}</span>`;
+  } else $("barraCupom").hidden = true;
   document.querySelectorAll("[data-beb]").forEach((el) => {
     const it = sacola.find((x) => x.chave === el.dataset.beb);
     el.textContent = it ? it.qtd : 0;
@@ -579,6 +594,7 @@ async function carregarCardapio(){
     }
     ACEITA_FORA = d.aceitar_fora_horario === true;
     CUPOM_POPUP = d.cupom_popup && d.cupom_popup.codigo ? d.cupom_popup : null;
+    if (CUPOM_POPUP && !cupomInfo && lerLS("aforja-cupom-pend") === CUPOM_POPUP.codigo) setTimeout(() => aplicarCupomDireto(CUPOM_POPUP), 0);
     mostrarSituacao(); desenharHorarioRodape(); desenharCombos(); atualizarBloqueio();
     aplicarModalidades();
     desenharPizzas(); desenharBebidas(); atualizarBarra();
@@ -660,8 +676,8 @@ $("pzAdd").addEventListener("click", () => {
 function desenharCombos(){
   const lista = MENU.combos || [];
   $("combos").hidden = !lista.length; $("abaCombos").hidden = !lista.length;
-  $("listaCombos").innerHTML = lista.map((c, k) => `<button type="button" class="combo${c.ativo ? "" : " esgotado"}" data-combo="${k}" ${c.ativo ? "" : "disabled"}>
-    ${c.foto_url ? `<img class="ic" src="${esc(c.foto_url)}" alt="" loading="lazy">` : `<span class="ic" aria-hidden="true">🍕</span>`}
+  $("listaCombos").innerHTML = lista.map((c, k) => `<button type="button" class="combo${c.foto_url ? " com-foto" : ""}${c.ativo ? "" : " esgotado"}" data-combo="${k}" ${c.ativo ? "" : "disabled"}>
+    ${c.foto_url ? `<img class="foto-combo" src="${esc(c.foto_url)}" alt="${esc(c.nome)}" loading="lazy">` : `<span class="ic" aria-hidden="true">🍕</span>`}
     <span class="tx"><h3>${esc(c.nome)}</h3><p>${esc(c.descricao || "")}</p></span>
     <span class="pr">${c.ativo ? brl(c.preco) : "Indisponível hoje"}</span></button>`).join("");
 }
@@ -986,13 +1002,26 @@ $("cpCopiar").addEventListener("click", async () => {
   catch(e) { $("cpCopiar").textContent = "Anote: " + CUPOM_POPUP.codigo; }
 });
 $("cpUsar").addEventListener("click", () => {
-  const cod = CUPOM_POPUP.codigo;
+  const c = CUPOM_POPUP;
   fecharPopupCupom();
-  gravarLS("aforja-cupom-pend", cod);
-  $("fCupom").value = cod;
-  avisoCupomGuardado(`🎁 Cupom ${cod} guardado! Ele entra sozinho quando você abrir a sacola.`);
-  if (temPizzaNaSacola()) aplicarCupomGuardado();
+  gravarLS("aforja-cupom-pend", c.codigo);
+  aplicarCupomDireto(c);
+  const val = c.tipo === "percentual" ? String(c.valor).replace(".", ",") + "%" : brl(c.valor);
+  avisoCupomGuardado(`🎁 Cupom ${c.codigo} aplicado! ${val} de desconto nas pizzas do seu pedido.`);
 });
+/* Aplica o cupom do pop-up direto (o sistema confere de novo ao enviar o pedido) */
+function aplicarCupomDireto(c){
+  cupomInfo = { codigo: c.codigo, tipo: c.tipo, valor: Number(c.valor), minimo: c.minimo != null ? Number(c.minimo) : null };
+  $("fCupom").value = c.codigo;
+  const val = c.tipo === "percentual" ? String(c.valor).replace(".", ",") + "%" : brl(c.valor);
+  msgCupom(`Cupom ${esc(c.codigo)} aplicado: ${val} nas pizzas <button type="button" id="fCupomTirar">remover</button>`, "ok");
+  $("fCupomTirar").onclick = tirarCupom;
+  atualizarBarra(); if (!$("painelSacola").hidden) desenharTotais();
+}
+function tirarCupom(){
+  cupomInfo = null; $("fCupom").value = ""; msgCupom(""); gravarLS("aforja-cupom-pend", null);
+  desenharTotais(); atualizarBarra();
+}
 function avisoCupomGuardado(txt){
   $("cpGuardado").textContent = txt; $("cpGuardado").hidden = false;
   clearTimeout(avisoCupomGuardado.t); avisoCupomGuardado.t = setTimeout(() => { $("cpGuardado").hidden = true; }, 4500);
@@ -1020,7 +1049,7 @@ async function aplicarCupom(){
     else {
       cupomInfo = { codigo: d.codigo, tipo: d.tipo, valor: d.valor, minimo: d.minimo };
       msgCupom(`Cupom aplicado: − ${brl(descontoAtual())} nas pizzas <button type="button" id="fCupomTirar">remover</button>`, "ok");
-      $("fCupomTirar").onclick = () => { cupomInfo = null; $("fCupom").value = ""; msgCupom(""); desenharTotais(); };
+      $("fCupomTirar").onclick = tirarCupom;
     }
   } catch (e) { msgCupom("Não foi possível validar o cupom agora. Tente de novo em instantes.", "ruim"); }
   $("fCupomBtn").disabled = false;

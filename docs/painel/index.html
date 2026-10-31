@@ -824,8 +824,8 @@ async function abrirCorte(arquivo, tipo) {
     c.getContext("2d").drawImage(img, 0, 0);
     CR.fonte = c;
   } finally { URL.revokeObjectURL(url); }
-  // Bebidas aparecem quadradas no cardápio; sabores e combos em faixa
-  $("crFormato").value = tipo === "bebida" ? "1" : "2.6";
+  // Bebidas aparecem quadradas no cardápio, sabores em faixa e combos com a foto inteira
+  $("crFormato").value = tipo === "bebida" ? "1" : tipo === "combo" ? "0" : "2.6";
   CR.aspecto = Number($("crFormato").value); CR.zoom = 1; $("crZoom").value = "1";
   CR.cx = CR.fonte.width / 2; CR.cy = CR.fonte.height / 2;
   $("crOv").hidden = false; desenharCorte(); infoCorte();
