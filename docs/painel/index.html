@@ -203,6 +203,14 @@ details.final summary{cursor:pointer;color:var(--muted);font-size:14px;margin-bo
 .ac-vazio{color:var(--muted);font-size:13.5px;padding:14px;text-align:center}
 .ac-hr{border:0;border-top:1px dashed var(--line);margin:8px 0}
 .ac-svg{display:block;width:100%;height:auto}
+.ac-mapa{height:380px;border-radius:12px;overflow:hidden;background:var(--bg);border:1px solid var(--line)}
+.ac-mapa .leaflet-container{font:inherit}
+.ac-seg{display:inline-flex;gap:2px;background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:3px}
+.ac-seg button{border:0;background:none;border-radius:999px;padding:4px 10px;font-size:12.5px;font-weight:700;color:var(--muted)}
+.ac-seg button[aria-pressed="true"]{background:var(--text);color:var(--bg)}
+.ac-nota{font-size:12.5px;color:var(--muted);margin:8px 0 0}
+.ac-21b{grid-template-columns:1.6fr 1fr}
+@media (max-width:1150px){.ac-21b{grid-template-columns:1fr}}
 .ac-svg text{fill:var(--muted);font:11px "Nunito Sans",sans-serif}
 .ac-svg text.v{fill:var(--text);font-weight:700}
 .modal-card{grid-column:1/-1}
@@ -260,7 +268,7 @@ details.final summary{cursor:pointer;color:var(--muted);font-size:14px;margin-bo
     <div class="trocar" role="group" aria-label="Seção">
       <button type="button" data-aba="pedidos" aria-pressed="true">Pedidos</button>
       <button type="button" data-aba="gestao" aria-pressed="false">Cardápio e cupons</button>
-      <button type="button" data-aba="acomp" aria-pressed="false">Acompanhamento</button>
+      <button type="button" data-aba="acomp" aria-pressed="false">Dashboard</button>
     </div>
     <span class="estado" id="estado">Conectando…</span>
     <span class="chip-ass" id="chipAss" hidden></span>
@@ -408,8 +416,16 @@ details.final summary{cursor:pointer;color:var(--muted);font-size:14px;margin-bo
       <div class="ac-c"><h3>Formas de pagamento</h3><p class="s">Valor dos pedidos no período</p><div id="fPag"></div>
         <h3 style="margin-top:16px">Entrega × retirada</h3><div id="fTipo"></div></div>
     </div>
-    <div class="ac-grid ac-2">
-      <div class="ac-c"><h3>Bairros que mais pedem</h3><p class="s">Só entregas · pelo bairro que o cliente digitou</p><div id="fBairros"></div></div>
+    <div class="ac-grid ac-21b">
+      <div class="ac-c"><div class="ac-top"><div><h3>Mapa das entregas</h3><p class="s">Cada ponto é um pedido. Onde há mais pontos juntos, mais pedidos</p></div>
+        <div class="ac-lg"><span><i style="background:var(--ember);border-radius:50%"></i>Pedido</span><span><i style="background:var(--text);border-radius:50%"></i>Pizzaria</span></div></div>
+        <div class="ac-mapa" id="fMapa"></div><p class="ac-nota" id="fMapaNota"></p></div>
+      <div class="ac-c"><div class="ac-top"><div><h3>Bairros que mais compram</h3><p class="s" id="fBairrosSub">Só entregas</p></div>
+        <div class="ac-seg" role="group" aria-label="Origem do bairro"><button type="button" data-fonte="geo" aria-pressed="true">Pela localização</button><button type="button" data-fonte="dig" aria-pressed="false">Digitado</button></div></div>
+        <div id="fBairros"></div><p class="ac-nota" id="fBairrosNota"></p>
+        <button type="button" class="btn" id="fGeoBtn" hidden style="margin-top:8px">📍 Buscar bairro dos pedidos antigos pela localização</button></div>
+    </div>
+    <div class="ac-grid" style="grid-template-columns:1.2fr 1fr">
       <div class="ac-c"><h3>Sabores mais vendidos</h3><p class="s">Inclui as pizzas dos combos · meio a meio conta meia para cada sabor</p><div id="fSabores"></div></div>
       <div class="ac-c"><h3>Combos, cupons e bebidas</h3><p class="s">Quanto cada um trouxe no período</p><div class="ac-mini" style="grid-template-columns:1fr 1fr" id="fExtras"></div></div>
     </div>
@@ -534,6 +550,7 @@ let demoProd = {
 };
 function apiDemo(acao, corpo) {
   if (String(acao).startsWith("relatorio")) return relatorioDemo(acao);
+  if (acao === "geocodificar") return geocodificarDemo();
   if (acao === "pedidos") return { pedidos: JSON.parse(JSON.stringify(demoDados)), assinatura: { ativo_ate: new Date(Date.now() + 3 * 86400000).toISOString(), em_teste: true, teste_inicio: new Date(Date.now() - 7 * 86400000).toISOString() } };
   if (acao === "produto" && corpo.tipo === "popup") { demoProd.cupom_popup = corpo.codigo || null; return { ok: true }; }
   if (acao === "produtos") return JSON.parse(JSON.stringify(demoProd));
@@ -1285,10 +1302,71 @@ function linhaRank(nome, info, p, cor) {
 }
 
 /* ---------- Busca ---------- */
-async function buscarRelatorio(deMs, ateMs) {
+async function buscarRelatorio(deMs, ateMs, guardarLoja) {
   const r = await api(`relatorio&de=${encodeURIComponent(new Date(deMs).toISOString())}&ate=${encodeURIComponent(new Date(ateMs).toISOString())}`);
+  if (guardarLoja) acLoja = r.loja || acLoja;
   return r.pedidos || [];
 }
+
+/* ---------- Mapa das entregas (Leaflet + OpenStreetMap, gratuito) ---------- */
+let acMapa = null, acCamada = null, leafletPromessa = null;
+function carregarLeaflet() {
+  if (window.L) return Promise.resolve();
+  if (leafletPromessa) return leafletPromessa;
+  leafletPromessa = new Promise((ok, falha) => {
+    const css = document.createElement("link"); css.rel = "stylesheet"; css.href = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"; document.head.appendChild(css);
+    const js = document.createElement("script"); js.src = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js";
+    js.onload = () => ok(); js.onerror = () => { leafletPromessa = null; falha(new Error("mapa indisponível")); }; document.head.appendChild(js);
+  });
+  return leafletPromessa;
+}
+async function desenharMapa(val) {
+  const pts = val.filter((p) => p.tipo_entrega === "entrega" && p.latitude != null && p.longitude != null);
+  const semLoc = val.filter((p) => p.tipo_entrega === "entrega").length - pts.length;
+  $("fMapaNota").textContent = `${pts.length} entrega${pts.length === 1 ? "" : "s"} no mapa${semLoc ? ` · ${semLoc} sem localização (pedidos antigos ou do WhatsApp)` : ""}`;
+  try { await carregarLeaflet(); } catch (e) { $("fMapa").innerHTML = `<p class="ac-vazio">Não foi possível carregar o mapa agora.</p>`; return; }
+  if (!acMapa) {
+    acMapa = L.map("fMapa", { scrollWheelZoom: false, attributionControl: true });
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© OpenStreetMap" }).addTo(acMapa);
+    acCamada = L.layerGroup().addTo(acMapa);
+  }
+  acCamada.clearLayers();
+  const cor = getComputedStyle(document.documentElement).getPropertyValue("--ember").trim() || "#C43E0C";
+  const corLoja = getComputedStyle(document.documentElement).getPropertyValue("--text").trim() || "#2A1A12";
+  const limites = [];
+  pts.forEach((p) => {
+    const ll = [p.latitude, p.longitude]; limites.push(ll);
+    L.circleMarker(ll, { radius: 7, color: cor, weight: 1, fillColor: cor, fillOpacity: 0.45 })
+      .bindTooltip(`nº ${p.id} · ${esc(p.bairro_geo || p.bairro || "")} · ${brl(p.total)}`).addTo(acCamada);
+  });
+  if (acLoja) {
+    limites.push([acLoja.lat, acLoja.lng]);
+    L.circleMarker([acLoja.lat, acLoja.lng], { radius: 9, color: "#fff", weight: 3, fillColor: corLoja, fillOpacity: 1 }).bindTooltip("A Forja Pizzaria").addTo(acCamada);
+  }
+  setTimeout(() => {
+    acMapa.invalidateSize();
+    if (limites.length > 1) acMapa.fitBounds(limites, { padding: [24, 24], maxZoom: 15 });
+    else if (limites.length === 1) acMapa.setView(limites[0], 14);
+    else acMapa.setView([-16.6497, -49.4927], 13);   // Trindade
+  }, 60);
+}
+
+/* ---------- Buscar bairro dos pedidos antigos ---------- */
+$("fGeoBtn").addEventListener("click", async () => {
+  const bt = $("fGeoBtn"); bt.disabled = true;
+  let total = 0;
+  try {
+    for (let volta = 0; volta < 50; volta++) {
+      bt.textContent = `Buscando bairros… ${total} feito${total === 1 ? "" : "s"}`;
+      const r = await api("geocodificar", "POST", {});
+      total += r.feitos || 0;
+      if (!r.restantes || !r.feitos) break;
+    }
+    bt.textContent = `✓ ${total} bairro${total === 1 ? "" : "s"} atualizado${total === 1 ? "" : "s"}`;
+  } catch (e) { $("acMsg").textContent = "Não foi possível buscar os bairros: " + e.message; }
+  bt.disabled = false;
+  carregarFinanceiro();
+});
 
 /* ---------- Pedidos de hoje ---------- */
 async function carregarHoje() {
@@ -1383,7 +1461,7 @@ async function carregarFinanceiro() {
   if (per.dias > 100) { $("acMsg").textContent = "Escolha um período de até 100 dias."; return; }
   $("acPerTxt").textContent = per.rot;
   let lista;
-  try { lista = await buscarRelatorio(inicioDoDia(per.antIni), inicioDoDia(per.fim)); }
+  try { lista = await buscarRelatorio(inicioDoDia(per.antIni), inicioDoDia(per.fim), true); }
   catch (e) { $("acMsg").textContent = "Não foi possível carregar: " + e.message; return; }
   const atual = lista.filter((p) => diaDe(p.criado_em) >= per.ini), antes = lista.filter((p) => diaDe(p.criado_em) < per.ini);
   acDados = atual; acPeriodo = per;
@@ -1427,17 +1505,42 @@ async function carregarFinanceiro() {
   $("fTipo").innerHTML = r.ped ? `<div style="display:flex;align-items:center;gap:16px;margin-top:8px"><svg width="96" height="96" viewBox="0 0 42 42" role="img" aria-label="Entrega ${pE}%, retirada ${100 - pE}%"><circle cx="21" cy="21" r="15.9" fill="none" stroke="var(--gold)" stroke-width="6"/><circle cx="21" cy="21" r="15.9" fill="none" stroke="var(--ember)" stroke-width="6" stroke-dasharray="${circ * pE / 100} ${circ}" transform="rotate(-90 21 21)"/><text x="21" y="23.5" text-anchor="middle" font-size="7" font-weight="700" fill="var(--text)">${r.ped}</text></svg>
     <div style="font-size:14px;line-height:1.9"><div><i style="display:inline-block;width:10px;height:10px;background:var(--ember);border-radius:3px"></i> Entrega <b>${pE}%</b> · ${r.entregas}</div><div><i style="display:inline-block;width:10px;height:10px;background:var(--gold);border-radius:3px"></i> Retirada <b>${100 - pE}%</b> · ${r.retiradas}</div></div></div>` : `<p class="ac-vazio">Sem pedidos no período.</p>`;
 
-  // Bairros
+  // Bairros: pela localização (OpenStreetMap) ou pelo que o cliente digitou
+  desenharBairros(val);
+  desenharMapa(val);
+  restoFinanceiro(val, r);
+}
+let acFonte = "geo", acLoja = null, acVal = [];
+document.querySelectorAll("[data-fonte]").forEach((b) => b.addEventListener("click", () => {
+  acFonte = b.dataset.fonte;
+  document.querySelectorAll("[data-fonte]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+  desenharBairros(acVal);
+}));
+function desenharBairros(val) {
+  acVal = val;
+  const ent = val.filter((p) => p.tipo_entrega === "entrega");
+  let porGeo = 0, porDig = 0;
   const bm = {};
-  val.filter((p) => p.tipo_entrega === "entrega").forEach((p) => {
-    const k = normBairro(p.bairro) || "(sem bairro)";
+  ent.forEach((p) => {
+    const geo = acFonte === "geo" && p.bairro_geo ? p.bairro_geo : null;
+    if (acFonte === "geo") geo ? porGeo++ : porDig++;
+    const nome = geo || p.bairro || "(sem bairro)";
+    const k = normBairro(nome) || "(sem bairro)";
     bm[k] = bm[k] || { ped: 0, fat: 0, nomes: {} }; bm[k].ped++; bm[k].fat += p.total;
-    const n = String(p.bairro || "(sem bairro)").trim(); bm[k].nomes[n] = (bm[k].nomes[n] || 0) + 1;
+    const n = String(nome).trim(); bm[k].nomes[n] = (bm[k].nomes[n] || 0) + 1;
   });
+  $("fBairrosSub").textContent = acFonte === "geo" ? "Só entregas · bairro descoberto pela localização do cliente" : "Só entregas · bairro que o cliente digitou";
+  $("fBairrosNota").textContent = acFonte === "geo" && ent.length
+    ? `${porGeo} pedido${porGeo === 1 ? "" : "s"} pela localização${porDig ? ` · ${porDig} pelo bairro digitado (sem localização ou o mapa não tem o nome do bairro)` : ""}` : "";
+  const pend = ent.filter((p) => p.latitude != null && p.bairro_geo == null).length;
+  $("fGeoBtn").hidden = !pend; $("fGeoBtn").dataset.pend = pend;
+  if (pend && !$("fGeoBtn").disabled) $("fGeoBtn").textContent = `📍 Buscar bairro de ${pend} pedido${pend > 1 ? "s" : ""} pela localização`;
   const bs = Object.entries(bm).map(([k, x]) => ({ nome: k === "(sem bairro)" ? k : titulo(Object.entries(x.nomes).sort((a, b) => b[1] - a[1])[0][0].toLowerCase()), ...x })).sort((a, b) => b.ped - a.ped);
   const maxB = bs[0]?.ped || 1;
   $("fBairros").innerHTML = bs.length ? bs.slice(0, 8).map((b) => linhaRank(b.nome, `${b.ped} ped. · ${brl(b.fat)}`, b.ped / maxB * 100)).join("")
     + (bs.length > 8 ? `<p class="s" style="margin:8px 0 0">+ ${bs.length - 8} bairro${bs.length - 8 > 1 ? "s" : ""} com menos pedidos</p>` : "") : `<p class="ac-vazio">Nenhuma entrega no período.</p>`;
+}
+function restoFinanceiro(val, r) {
 
   // Sabores
   const sm = {};
@@ -1499,6 +1602,12 @@ function gerarDemoRel() {
   const bairros = ["Jardim Marista","Jardim Marista","jd marista","Jardim Marista","Setor Cristina","Setor Cristina","St. Cristina","Jardim Primavera","Jardim Primavera","Vila Pai Eterno","Setor Sul","Jardim Ipiranga","Residencial Maria Monteiro","Setor Barcelos"];
   const nomes = ["Ana","Bruno","Carla","Diego","Elisa","Fábio","Gabi","Hugo","Iara","João","Karen","Lucas","Marina","Nelson","Olívia","Paulo","Rafa","Sônia","Tiago","Vera"];
   const lista = []; let id = 900;
+  // centro aproximado de cada bairro (só para a demonstração)
+  const CENTROS = { "jardim marista": [-16.6372, -49.4205], "setor cristina": [-16.6431, -49.4152], "jardim primavera": [-16.6315, -49.4268],
+    "vila pai eterno": [-16.6505, -49.4880], "setor sul": [-16.6560, -49.4930], "jardim ipiranga": [-16.6290, -49.4090],
+    "residencial maria monteiro": [-16.6458, -49.4300], "setor barcelos": [-16.6250, -49.4180] };
+  const NOME_GEO = { "jardim marista": "Jardim Marista", "setor cristina": "Setor Cristina", "jardim primavera": "Jardim Primavera", "vila pai eterno": "Vila Pai Eterno",
+    "setor sul": "Setor Sul", "jardim ipiranga": "Jardim Ipiranga", "residencial maria monteiro": "Residencial Maria Monteiro", "setor barcelos": "Setor Barcelos" };
   const hojeK = diaDe(new Date().toISOString());
   for (let n = 74; n >= 0; n--) {
     const d = somaDias(hojeK, -n), w = semanaDe(d);
@@ -1528,7 +1637,15 @@ function gerarDemoRel() {
       if (n === 0 && status !== "cancelado") status = idadeMin < 12 ? "recebido" : idadeMin < 34 ? "em_preparo" : status;
       const aceito = Math.round(2 + rnd() * 5), pronto = Math.round(22 + rnd() * 18 + (h === 20 || h === 21 ? 6 : 0));
       lista.push({ id: ++id, criado_em: new Date(t).toISOString(), status, tipo_entrega: entrega ? "entrega" : "retirada", origem: rnd() < 0.78 ? "site" : "whatsapp",
-        bairro: entrega ? pega(bairros) : null, forma_pagamento: pega(["pix", "pix", "pix", "cartao", "cartao", "dinheiro"]), subtotal, desconto, cupom, taxa_entrega: taxa,
+        ...(() => {
+          if (!entrega) return { bairro: null, latitude: null, longitude: null, bairro_geo: null };
+          const dig = pega(bairros), k = normBairro(dig), c = CENTROS[k] || [-16.64, -49.42];
+          const temLoc = n < 20 || rnd() < 0.6;                               // pedidos antigos sem localização
+          const lat = c[0] + (rnd() - 0.5) * 0.008, lng = c[1] + (rnd() - 0.5) * 0.008;
+          const geo = !temLoc ? null : n > 2 && rnd() < 0.12 ? null : rnd() < 0.06 ? "" : NOME_GEO[k] || null;
+          return { bairro: dig, latitude: temLoc ? lat : null, longitude: temLoc ? lng : null, bairro_geo: geo, _geo: NOME_GEO[k] || "" };
+        })(),
+        forma_pagamento: pega(["pix", "pix", "pix", "cartao", "cartao", "dinheiro"]), subtotal, desconto, cupom, taxa_entrega: taxa,
         total: Math.round((subtotal - desconto + taxa) * 100) / 100, cliente: pega(nomes) + " " + pega(["S.", "M.", "L.", "P.", "R."]), itens,
         aceito_em: status === "recebido" ? null : new Date(t + aceito * 60000).toISOString(),
         pronto_em: ["saiu_entrega", "pronto_retirada"].includes(status) ? new Date(t + pronto * 60000).toISOString() : null });
@@ -1539,11 +1656,17 @@ function gerarDemoRel() {
   if (hojeAbertos.length) lista.push({ ...hojeAbertos[0], id: ++id, criado_em: new Date(Date.now() - 46 * 60000).toISOString(), status: "em_preparo", pronto_em: null, aceito_em: new Date(Date.now() - 42 * 60000).toISOString(), cliente: "Patrícia V.", bairro: "Jardim Marista", tipo_entrega: "entrega" });
   return lista;
 }
+function geocodificarDemo() {
+  demoRel = demoRel || gerarDemoRel();
+  const pend = demoRel.filter((p) => p.latitude != null && p.bairro_geo == null);
+  pend.slice(0, 20).forEach((p) => { p.bairro_geo = p._geo || ""; });
+  return { feitos: Math.min(20, pend.length), restantes: Math.max(0, pend.length - 20) };
+}
 function relatorioDemo(acao) {
   const q = new URLSearchParams(acao.replace(/^relatorio&?/, ""));
   const de = Date.parse(q.get("de")), ate = Date.parse(q.get("ate"));
   demoRel = demoRel || gerarDemoRel();
-  return { pedidos: JSON.parse(JSON.stringify(demoRel.filter((p) => { const t = Date.parse(p.criado_em); return t >= de && t < ate; }))) };
+  return { loja: { lat: -16.637869, lng: -49.4196 }, pedidos: JSON.parse(JSON.stringify(demoRel.filter((p) => { const t = Date.parse(p.criado_em); return t >= de && t < ate; }))) };
 }
 </script>
 </body>
