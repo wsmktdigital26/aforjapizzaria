@@ -617,10 +617,19 @@ $("sair").addEventListener("click", () => { if (!demo) { try { localStorage.remo
 if (senha) entrar();
 
 /* ---------- Carregar pedidos ---------- */
+/* Início do turno atual: hoje às 6h de Brasília (ou ontem às 6h, se ainda não deu 6h) */
+function inicioTurno() {
+  const agora = Date.now(), H = 3600000, sp = new Date(agora - 3 * H);   // Brasília = UTC-3
+  let ini = Date.UTC(sp.getUTCFullYear(), sp.getUTCMonth(), sp.getUTCDate(), 6) + 3 * H;
+  if (ini > agora) ini -= 24 * H;
+  return ini;
+}
 async function carregar(primeira) {
   try {
     const dados = await api("pedidos");
-    pedidos = dados.pedidos || [];
+    // A tela começa limpa todo dia às 6h (Brasília). Pedido ainda aberto continua até ser finalizado.
+    const turno = inicioTurno(), ABERTOS = ["aguardando_pagamento", "recebido", "em_preparo"];
+    pedidos = (dados.pedidos || []).filter((p) => Date.parse(p.criado_em) >= turno || ABERTOS.includes(p.status));
     if (dados.assinatura) verAssinatura(dados.assinatura);
     const novos = conhecidos ? pedidos.filter((p) => !conhecidos.has(p.id)) : [];
     conhecidos = new Set(pedidos.map((p) => p.id));
