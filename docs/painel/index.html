@@ -562,6 +562,8 @@ let demoProd = {
 function apiDemo(acao, corpo) {
   if (String(acao).startsWith("relatorio")) return relatorioDemo(acao);
   if (acao === "geocodificar") return geocodificarDemo();
+  if (acao === "geo_pendentes") return geoPendentesDemo();
+  if (acao === "bairro_geo") return bairroGeoDemo(corpo);
   if (acao === "pedidos") return { pedidos: JSON.parse(JSON.stringify(demoDados)), assinatura: { ativo_ate: new Date(Date.now() + 3 * 86400000).toISOString(), em_teste: true, teste_inicio: new Date(Date.now() - 7 * 86400000).toISOString() } };
   if (acao === "produto" && corpo.tipo === "popup") { demoProd.cupom_popup = corpo.codigo || null; return { ok: true }; }
   if (acao === "produtos") return JSON.parse(JSON.stringify(demoProd));
@@ -1377,28 +1379,51 @@ async function desenharMapa(val) {
   }, 60);
 }
 
-/* ---------- Buscar bairro pela localização (pedidos que ainda não têm) ---------- */
+/* ---------- Buscar bairro pela localização (pedidos que ainda não têm) ----------
+   A consulta ao OpenStreetMap sai do navegador do painel (internet da pizzaria),
+   porque o serviço gratuito costuma bloquear servidores de nuvem. Regra de uso: 1 por segundo. */
 let geoBuscando = false, geoAutoFeito = false;
+async function bairroOSM(lat, lng) {
+  const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=17&addressdetails=1&accept-language=pt-BR&lat=${lat}&lon=${lng}`;
+  let r;
+  try { r = await fetch(url, { headers: { "Accept": "application/json" } }); }
+  catch (e) { throw new Error("rede"); }
+  if (!r.ok) throw new Error("http " + r.status);
+  const d = await r.json(), e = d && d.address || {};
+  return String(e.suburb || e.neighbourhood || e.quarter || e.city_district || e.residential || "").slice(0, 80);
+}
 async function buscarBairrosGeo(automatico) {
   if (geoBuscando) return;
   geoBuscando = true;
   const bt = $("fGeoBtn"); bt.disabled = true;
   let total = 0, erroTxt = "";
   try {
-    for (let volta = 0; volta < 50; volta++) {
-      bt.textContent = `Buscando bairros pela localização… ${total} feito${total === 1 ? "" : "s"}`;
-      const r = await api("geocodificar", "POST", {});
-      total += r.feitos || 0;
-      if (!r.restantes) break;
-      if (!r.feitos) { erroTxt = "O serviço de mapas (OpenStreetMap) não respondeu agora. Tente de novo em alguns minutos."; break; }
+    const { pendentes = [] } = await api("geo_pendentes");
+    const cache = {}, lote = [];
+    const enviar = async () => { if (lote.length) { await api("bairro_geo", "POST", { itens: lote.splice(0) }); } };
+    for (let i = 0; i < pendentes.length; i++) {
+      const p = pendentes[i], chave = p.lat.toFixed(4) + "," + p.lng.toFixed(4);
+      bt.textContent = `Buscando bairros pela localização… ${i} de ${pendentes.length}`;
+      let nome = cache[chave];
+      if (nome === undefined) {
+        if (i && !demo) await new Promise((ok) => setTimeout(ok, 1100));
+        nome = demo ? (demoNomeGeo(p.id)) : await bairroOSM(p.lat, p.lng);
+        cache[chave] = nome;
+      }
+      lote.push({ id: p.id, bairro: nome }); total++;
+      if (lote.length >= 10) await enviar();
     }
+    await enviar();
   } catch (e) {
-    erroTxt = /inválid|404|not found/i.test(e.message) ? "A função cardapio-api ainda é a versão antiga. Atualize com o arquivo funcao_cardapio-api_index.ts."
-      : /SQL 15|bairro_geo/i.test(e.message) ? "Rode o 15_bairro_localizacao_mapa.sql no Supabase."
-      : "Não foi possível buscar os bairros: " + e.message;
+    const m = e.message || "";
+    erroTxt = /inválid|404|not found/i.test(m) ? "A função cardapio-api ainda é a versão antiga. Atualize com o arquivo funcao_cardapio-api_index.ts."
+      : /SQL 15|bairro_geo/i.test(m) ? "Rode o 15_bairro_localizacao_mapa.sql no Supabase."
+      : /^http 4(03|29)/.test(m) ? `O OpenStreetMap limitou as consultas (${m.slice(5)}). Tente de novo daqui a alguns minutos.`
+      : /^(rede|http)/.test(m) ? "Não foi possível falar com o OpenStreetMap a partir deste computador agora. Confira a internet e tente de novo."
+      : "Não foi possível buscar os bairros: " + m;
   }
   geoBuscando = false; bt.disabled = false;
-  if (erroTxt) { $("fBairrosNota").innerHTML = `<b style="color:var(--erro)">${esc(erroTxt)}</b>`; bt.textContent = "📍 Tentar de novo"; return; }
+  if (erroTxt) { $("fBairrosNota").innerHTML = `<b style="color:var(--erro)">${esc(erroTxt)}</b>${total ? ` · ${total} já atualizado${total === 1 ? "" : "s"}` : ""}`; bt.textContent = "📍 Tentar de novo"; if (total) carregarFinanceiro(); return; }
   await carregarFinanceiro();
   if (!automatico || total) $("fBairrosNota").textContent += ` · ${total} bairro${total === 1 ? "" : "s"} atualizado${total === 1 ? "" : "s"} agora`;
 }
@@ -1692,6 +1717,15 @@ function gerarDemoRel() {
   const hojeAbertos = lista.filter((p) => diaDe(p.criado_em) === hojeK);
   if (hojeAbertos.length) lista.push({ ...hojeAbertos[0], id: ++id, criado_em: new Date(Date.now() - 46 * 60000).toISOString(), status: "em_preparo", pronto_em: null, aceito_em: new Date(Date.now() - 42 * 60000).toISOString(), cliente: "Patrícia V.", bairro: "Jardim Marista", tipo_entrega: "entrega" });
   return lista;
+}
+function demoNomeGeo(id) { const p = (demoRel || []).find((x) => x.id === id); return p ? (p._geo || "") : ""; }
+function geoPendentesDemo() {
+  demoRel = demoRel || gerarDemoRel();
+  return { pendentes: demoRel.filter((p) => p.latitude != null && p.bairro_geo == null).slice(0, 300).map((p) => ({ id: p.id, lat: p.latitude, lng: p.longitude })) };
+}
+function bairroGeoDemo(corpo) {
+  (corpo.itens || []).forEach((it) => { const p = (demoRel || []).find((x) => x.id === it.id); if (p) p.bairro_geo = it.bairro; });
+  return { ok: true, feitos: (corpo.itens || []).length };
 }
 function geocodificarDemo() {
   demoRel = demoRel || gerarDemoRel();
