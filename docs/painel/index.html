@@ -115,6 +115,12 @@ details.final summary{cursor:pointer;color:var(--muted);font-size:14px;margin-bo
 .as h2 em{font-style:normal;color:var(--ember)}
 .as.vencida h2 em{color:var(--erro)}
 .as p{font-size:15px;color:var(--muted);margin:6px 0 0}
+.as-crono{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:18px}
+.as-crono[hidden]{display:none}
+.as-crono div{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:8px 4px 6px;text-align:center}
+.as-crono b{display:block;font-family:Oswald,"Arial Narrow",sans-serif;font-weight:700;font-size:34px;line-height:1.05;color:var(--ember);font-variant-numeric:tabular-nums}
+.as-crono span{font-size:11.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px}
+.as-crono-tit{font-size:12.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin:16px 0 0;text-align:center}
 .as-bar{height:8px;background:var(--line);border-radius:9px;margin:20px 0 6px;overflow:hidden}
 .as-bar i{display:block;height:100%;background:linear-gradient(90deg,#2F7A3B,#E09A00 70%,#C43E0C)}
 .as-leg{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted);font-weight:700}
@@ -441,6 +447,11 @@ details.final summary{cursor:pointer;color:var(--muted);font-size:14px;margin-bo
       <div class="as-lin">
         <div class="as-cal" aria-hidden="true"><div class="m" id="asMes"></div><div class="d" id="asDia"></div><div class="s" id="asSem"></div></div>
         <div><h2 id="asTitulo"></h2><p id="asTexto"></p></div>
+      </div>
+      <p class="as-crono-tit" id="asCronoTit">Tempo restante</p>
+      <div class="as-crono" id="asCrono" role="timer" aria-live="off">
+        <div><b id="crD">00</b><span>dias</span></div><div><b id="crH">00</b><span>horas</span></div>
+        <div><b id="crM">00</b><span>min</span></div><div><b id="crS">00</b><span>seg</span></div>
       </div>
       <div id="asBarra"><div class="as-bar"><i id="asBarI"></i></div><div class="as-leg"><span id="asIni"></span><span id="asUsados"></span><span id="asFim"></span></div></div>
       <a class="as-ws" id="asWs" target="_blank" rel="noopener">Falar com a WS Solutions</a>
@@ -1182,6 +1193,10 @@ function verAssinatura(ass) {
   if (!vencida) { try { if (localStorage.getItem(chave)) return; } catch (e) {} }
   verAssinatura.mostrado = true;
   const dataLonga = sp(fim, { day: "2-digit", month: "2-digit", year: "numeric" });
+  // dias pelo calendário de Brasília (hoje / amanhã / em N dias), para bater com o cronômetro
+  const diaSP = (d) => Date.parse(new Date(d.getTime() - 3 * 3600000).toISOString().slice(0, 10));
+  const diasCal = Math.round((diaSP(fim) - diaSP(new Date())) / 86400000);
+  const quando = diasCal <= 0 ? "<em>hoje</em>" : diasCal === 1 ? "<em>amanhã</em>" : `em <em>${diasCal} dias</em>`;
   $("asCaixa").classList.toggle("vencida", vencida);
   $("asFaixa").textContent = teste ? (vencida ? "Teste encerrado" : "Período de teste") : (vencida ? "Assinatura vencida" : "Aviso da assinatura");
   $("asMes").textContent = MESES[Number(sp(fim, { month: "numeric" })) - 1];
@@ -1191,13 +1206,13 @@ function verAssinatura(ass) {
     $("asTitulo").innerHTML = "Seu período de teste <em>terminou</em>";
     $("asTexto").innerHTML = `O teste grátis terminou em <b style="color:var(--text)">${dataLonga}</b> e o cardápio online parou de receber pedidos novos. Fale com a WS Solutions para ativar o plano e voltar a vender.`;
   } else if (teste) {
-    $("asTitulo").innerHTML = `Seu teste grátis termina<br>${dias <= 1 ? "<em>amanhã</em>" : `em <em>${dias} dias</em>`}`;
+    $("asTitulo").innerHTML = `Seu teste grátis termina<br>${quando}`;
     $("asTexto").innerHTML = `Gostou do cardápio online, do painel da cozinha e do robô do WhatsApp? Para continuar recebendo pedidos depois de <b style="color:var(--text)">${dataLonga}</b>, fale com a WS Solutions e ative o seu plano.`;
   } else if (vencida) {
     $("asTitulo").innerHTML = "Sua assinatura <em>venceu</em>";
     $("asTexto").innerHTML = `Venceu em <b style="color:var(--text)">${dataLonga}</b>. O cardápio online não está recebendo pedidos novos. Fale com a WS Solutions para renovar.`;
   } else {
-    $("asTitulo").innerHTML = `Sua assinatura vence<br>${dias <= 1 ? "<em>amanhã</em>" : `em <em>${dias} dias</em>`}`;
+    $("asTitulo").innerHTML = `Sua assinatura vence<br>${quando}`;
     $("asTexto").innerHTML = `Renove até <b style="color:var(--text)">${dataLonga}</b> para o cardápio, o painel e o robô do WhatsApp continuarem recebendo pedidos.`;
   }
   // Barra: no teste usa a data de início gravada; na assinatura, um ciclo de 30 dias
@@ -1214,8 +1229,19 @@ function verAssinatura(ass) {
     ? `Olá, WS Solutions! Sou da A Forja Pizzaria e quero ativar o plano do sistema (o teste ${vencida ? "terminou" : "termina"} em ${dataLonga}).`
     : `Olá, WS Solutions! Sou da A Forja Pizzaria e quero renovar a assinatura do sistema (${vencida ? "venceu" : "vence"} em ${dataLonga}).`;
   $("asWs").href = `https://wa.me/${WS_WHATSAPP.replace(/\D/g, "")}?text=${encodeURIComponent(msg)}`;
+  // Cronômetro até o fim do teste / da assinatura
+  $("asCrono").hidden = $("asCronoTit").hidden = vencida;
+  $("asCronoTit").textContent = teste ? "O teste grátis termina em" : "A assinatura vence em";
+  clearInterval(verAssinatura.timer);
+  const tique = () => {
+    const resto = Math.max(0, fim - Date.now()), z = (n) => String(n).padStart(2, "0");
+    $("crD").textContent = z(Math.floor(resto / 86400000)); $("crH").textContent = z(Math.floor(resto / 3600000) % 24);
+    $("crM").textContent = z(Math.floor(resto / 60000) % 60); $("crS").textContent = z(Math.floor(resto / 1000) % 60);
+    if (!resto) { clearInterval(verAssinatura.timer); verAssinatura.mostrado = false; $("asOv").hidden = true; verAssinatura(ass); }
+  };
+  if (!vencida) { tique(); verAssinatura.timer = setInterval(tique, 1000); }
   $("asOv").hidden = false;
-  $("asX").onclick = () => { $("asOv").hidden = true; if (!vencida) { try { localStorage.setItem(chave, "1"); } catch (e) {} } };
+  $("asX").onclick = () => { $("asOv").hidden = true; clearInterval(verAssinatura.timer); if (!vencida) { try { localStorage.setItem(chave, "1"); } catch (e) {} } };
 }
 $("asWs").addEventListener("click", () => { $("asX").click(); });
 
@@ -1243,7 +1269,7 @@ function normBairro(b) {
     .replace(/[.,]/g, " ").replace(/\bjd\b/g, "jardim").replace(/\bst\b/g, "setor").replace(/\bres\b/g, "residencial")
     .replace(/\bvl\b/g, "vila").replace(/\bpq\b/g, "parque").replace(/\bconj\b/g, "conjunto").replace(/\s+/g, " ").trim();
 }
-const titulo = (s) => s.replace(/\b\p{L}/gu, (c) => c.toUpperCase()).replace(/\b(De|Da|Do|Dos|Das|E)\b/g, (w) => w.toLowerCase());
+const titulo = (s) => s.split(/\s+/).map((w, i) => (i > 0 && /^(de|da|do|dos|das|e)$/.test(w)) ? w : w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
 
 function saboresDoItem(it) {
   // "Pizza Grande A / B" ou "Combo X: Pizza Grande A / B + Pizza Grande C + Bebida"
@@ -1351,22 +1377,32 @@ async function desenharMapa(val) {
   }, 60);
 }
 
-/* ---------- Buscar bairro dos pedidos antigos ---------- */
-$("fGeoBtn").addEventListener("click", async () => {
+/* ---------- Buscar bairro pela localização (pedidos que ainda não têm) ---------- */
+let geoBuscando = false, geoAutoFeito = false;
+async function buscarBairrosGeo(automatico) {
+  if (geoBuscando) return;
+  geoBuscando = true;
   const bt = $("fGeoBtn"); bt.disabled = true;
-  let total = 0;
+  let total = 0, erroTxt = "";
   try {
     for (let volta = 0; volta < 50; volta++) {
-      bt.textContent = `Buscando bairros… ${total} feito${total === 1 ? "" : "s"}`;
+      bt.textContent = `Buscando bairros pela localização… ${total} feito${total === 1 ? "" : "s"}`;
       const r = await api("geocodificar", "POST", {});
       total += r.feitos || 0;
-      if (!r.restantes || !r.feitos) break;
+      if (!r.restantes) break;
+      if (!r.feitos) { erroTxt = "O serviço de mapas (OpenStreetMap) não respondeu agora. Tente de novo em alguns minutos."; break; }
     }
-    bt.textContent = `✓ ${total} bairro${total === 1 ? "" : "s"} atualizado${total === 1 ? "" : "s"}`;
-  } catch (e) { $("acMsg").textContent = "Não foi possível buscar os bairros: " + e.message; }
-  bt.disabled = false;
-  carregarFinanceiro();
-});
+  } catch (e) {
+    erroTxt = /inválid|404|not found/i.test(e.message) ? "A função cardapio-api ainda é a versão antiga. Atualize com o arquivo funcao_cardapio-api_index.ts."
+      : /SQL 15|bairro_geo/i.test(e.message) ? "Rode o 15_bairro_localizacao_mapa.sql no Supabase."
+      : "Não foi possível buscar os bairros: " + e.message;
+  }
+  geoBuscando = false; bt.disabled = false;
+  if (erroTxt) { $("fBairrosNota").innerHTML = `<b style="color:var(--erro)">${esc(erroTxt)}</b>`; bt.textContent = "📍 Tentar de novo"; return; }
+  await carregarFinanceiro();
+  if (!automatico || total) $("fBairrosNota").textContent += ` · ${total} bairro${total === 1 ? "" : "s"} atualizado${total === 1 ? "" : "s"} agora`;
+}
+$("fGeoBtn").addEventListener("click", () => buscarBairrosGeo(false));
 
 /* ---------- Pedidos de hoje ---------- */
 async function carregarHoje() {
@@ -1534,6 +1570,7 @@ function desenharBairros(val) {
     ? `${porGeo} pedido${porGeo === 1 ? "" : "s"} pela localização${porDig ? ` · ${porDig} pelo bairro digitado (sem localização ou o mapa não tem o nome do bairro)` : ""}` : "";
   const pend = ent.filter((p) => p.latitude != null && p.bairro_geo == null).length;
   $("fGeoBtn").hidden = !pend; $("fGeoBtn").dataset.pend = pend;
+  if (pend && !geoAutoFeito && !geoBuscando) { geoAutoFeito = true; setTimeout(() => buscarBairrosGeo(true), 300); }
   if (pend && !$("fGeoBtn").disabled) $("fGeoBtn").textContent = `📍 Buscar bairro de ${pend} pedido${pend > 1 ? "s" : ""} pela localização`;
   const bs = Object.entries(bm).map(([k, x]) => ({ nome: k === "(sem bairro)" ? k : titulo(Object.entries(x.nomes).sort((a, b) => b[1] - a[1])[0][0].toLowerCase()), ...x })).sort((a, b) => b.ped - a.ped);
   const maxB = bs[0]?.ped || 1;
