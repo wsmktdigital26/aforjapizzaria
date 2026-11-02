@@ -258,6 +258,16 @@ details.final summary{cursor:pointer;color:var(--muted);font-size:14px;margin-bo
 .rt-acoes{display:grid;gap:8px;margin-top:12px}
 .rt-acoes .btn{text-align:center;text-decoration:none;padding:10px 12px}
 .rt-aviso{font-size:12.5px;color:var(--muted);margin-top:6px}
+.rt-extra{border:1px dashed var(--line);border-radius:10px;padding:10px;margin-top:10px;display:grid;gap:7px;font-size:13.5px}
+.rt-extra[hidden]{display:none}
+.rt-extra input,.rt-extra select{border:1px solid var(--line);border-radius:8px;padding:6px 8px;background:var(--bg);min-width:0;width:100%}
+.rt-extra .lin2{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.rt-extra .msg{font-size:12.5px;color:var(--muted)}
+.rt-extra .msg.erro{color:var(--erro)}
+.rt-app{font-size:11px;font-weight:700;border-radius:999px;padding:1px 7px;margin-left:4px;color:#fff;background:#EA1D2C}
+.rt-app.n99{background:#FFB800;color:#1A1A1A}
+.rt-app.out{background:var(--muted)}
+.rt-tirar{border:0;background:none;color:var(--erro);font-size:18px;cursor:pointer;padding:0 4px}
 .rt-pino{width:28px;height:28px;border-radius:50%;background:var(--ember);color:#fff;font-weight:700;font-size:14px;display:grid;place-items:center;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35)}
 .rt-pino.loja{background:#2A1A12;font-size:15px}
 .modal-card{grid-column:1/-1}
@@ -492,6 +502,19 @@ details.final summary{cursor:pointer;color:var(--muted);font-size:14px;margin-bo
       <div class="rt-col">
         <h3>1. Escolha os pedidos</h3>
         <div class="rt-sel" id="rtSel"></div>
+        <button type="button" class="btn" id="rtAddBtn" style="width:100%;margin-top:8px">+ Adicionar entrega do iFood / 99Food</button>
+        <div class="rt-extra" id="rtExtra" hidden>
+          <div class="lin2"><select id="exApp" aria-label="App"><option>iFood</option><option>99Food</option><option>Outro</option></select><input id="exNum" placeholder="Nº do pedido no app"></div>
+          <input id="exNome" placeholder="Nome do cliente">
+          <input id="exEnd" placeholder="Endereço (rua, número, bairro)">
+          <input id="exLoc" placeholder="Localização: cole o link do Google Maps ou as coordenadas">
+          <button type="button" class="btn" id="exBuscar">📍 Achar o endereço no mapa</button>
+          <div class="lin2"><select id="exPag" aria-label="Pagamento"><option value="app">Pago no app</option><option value="dinheiro">Dinheiro na entrega</option><option value="cartao">Cartão na entrega</option></select><input id="exValor" inputmode="decimal" placeholder="Valor (R$)"></div>
+          <input id="exTroco" inputmode="decimal" placeholder="Troco para (R$), se for dinheiro" hidden>
+          <input id="exFone" inputmode="tel" placeholder="Telefone do cliente (opcional)">
+          <div class="msg" id="exMsg"></div>
+          <div class="lin2"><button type="button" class="btn" id="exCancelar">Cancelar</button><button type="button" class="btn prim" id="exSalvar">Adicionar na rota</button></div>
+        </div>
         <div class="rt-opc">
           <label><input type="checkbox" id="rtVolta"> Voltar para a pizzaria no fim</label>
           <label>WhatsApp do entregador <input type="tel" id="rtFone" placeholder="62 9 9999-9999" inputmode="tel"></label>
@@ -1889,33 +1912,90 @@ function melhorOrdem(pontos, loja, volta) {
   return ordem;
 }
 
-function entregasParaRota() {
-  return pedidos.filter((p) => p.tipo_entrega === "entrega" && ["recebido", "em_preparo", "saiu_entrega"].includes(p.status));
+/* Entregas do iFood / 99Food / outros apps: ficam salvas só neste computador por 12 horas */
+function lerExtras() {
+  let l = []; try { l = JSON.parse(localStorage.getItem("aforja-rota-extras") || "[]"); } catch (e) {}
+  return l.filter((x) => Date.now() - x.criado < 12 * 3600000);
 }
+function gravarExtras(l) { try { localStorage.setItem("aforja-rota-extras", JSON.stringify(l)); } catch (e) {} }
+const pagTxt = (p) => p.forma_pagamento === "app" ? `Pago no ${p.app || "app"}` : (PAG[p.forma_pagamento] || p.forma_pagamento || "");
+function entregasParaRota() {
+  return pedidos.filter((p) => p.tipo_entrega === "entrega" && ["recebido", "em_preparo", "saiu_entrega"].includes(p.status))
+    .concat(lerExtras().filter((x) => x.status !== "saiu_entrega"));
+}
+function coordsDoTexto(t) {
+  const m = String(t || "").match(/(-?\d{1,2}\.\d{3,})\s*,\s*(-?\d{1,3}\.\d{3,})/);
+  return m ? { lat: Number(m[1]), lng: Number(m[2]) } : null;
+}
+let exAchado = null;
+function msgEx(t, erro) { $("exMsg").textContent = t; $("exMsg").className = "msg" + (erro ? " erro" : ""); }
+$("rtAddBtn").addEventListener("click", () => { $("rtExtra").hidden = false; $("rtAddBtn").hidden = true; exAchado = null; msgEx(""); $("exNum").focus(); });
+$("exCancelar").addEventListener("click", () => { $("rtExtra").hidden = true; $("rtAddBtn").hidden = false; });
+$("exPag").addEventListener("change", () => { $("exTroco").hidden = $("exPag").value !== "dinheiro"; });
+$("exLoc").addEventListener("input", () => { exAchado = coordsDoTexto($("exLoc").value); msgEx(exAchado ? "✓ Localização reconhecida" : /goo\.gl|maps\.app/.test($("exLoc").value) ? "Link curto: abra no navegador e copie o link completo, ou use “Achar o endereço no mapa”." : "", !exAchado && $("exLoc").value.trim() !== ""); });
+$("exBuscar").addEventListener("click", async () => {
+  const end = $("exEnd").value.trim();
+  if (!end) { msgEx("Digite o endereço primeiro.", true); return; }
+  msgEx("Procurando no mapa…");
+  try {
+    const q = encodeURIComponent(/trindade/i.test(end) ? end : end + ", Trindade, GO");
+    const r = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=br&accept-language=pt-BR&q=${q}`);
+    const d = r.ok ? await r.json() : [];
+    if (!d.length) { msgEx("Não achei esse endereço no mapa. Cole o link do Google Maps do cliente.", true); return; }
+    exAchado = { lat: Number(d[0].lat), lng: Number(d[0].lon) };
+    $("exLoc").value = `${exAchado.lat.toFixed(6)}, ${exAchado.lng.toFixed(6)}`;
+    msgEx("✓ Achei: " + String(d[0].display_name || "").split(",").slice(0, 3).join(","));
+  } catch (e) { msgEx("Não foi possível consultar o mapa agora. Cole o link do Google Maps do cliente.", true); }
+});
+$("exSalvar").addEventListener("click", () => {
+  const loc = exAchado || coordsDoTexto($("exLoc").value);
+  if (!$("exNome").value.trim() && !$("exNum").value.trim()) { msgEx("Informe o nome do cliente ou o nº do pedido.", true); return; }
+  if (!loc) { msgEx("Falta a localização: cole o link do Google Maps ou use “Achar o endereço no mapa”.", true); return; }
+  const num = (v) => Number(String(v || "").replace(/[^\d,.]/g, "").replace(",", ".")) || 0;
+  const app = $("exApp").value, x = {
+    id: "x" + Date.now(), extra: true, app, criado: Date.now(), status: "em_preparo", tipo_entrega: "entrega",
+    latitude: loc.lat, longitude: loc.lng, endereco: $("exEnd").value.trim(),
+    clientes: { nome: ($("exNome").value.trim() || "Cliente") + ($("exNum").value.trim() ? ` · ${app} #${$("exNum").value.trim()}` : ` · ${app}`), telefone: $("exFone").value.replace(/\D/g, "") },
+    forma_pagamento: $("exPag").value, total: num($("exValor").value), troco_para: $("exPag").value === "dinheiro" ? (num($("exTroco").value) || null) : null, observacoes: null,
+  };
+  gravarExtras(lerExtras().concat([x]));
+  rtSelecionados.add(x.id);
+  ["exNum","exNome","exEnd","exLoc","exValor","exTroco","exFone"].forEach((k) => $(k).value = "");
+  $("rtExtra").hidden = true; $("rtAddBtn").hidden = false;
+  desenharSelecaoRota(); calcularRota();
+});
 function abrirRota() {
   const lista = entregasParaRota();
   // Já vem marcado o que está em preparo (é o que vai sair agora)
-  rtSelecionados = new Set(lista.filter((p) => p.status === "em_preparo" && p.latitude != null).map((p) => p.id));
+  rtSelecionados = new Set(lista.filter((p) => p.status === "em_preparo" && p.latitude != null).map((p) => String(p.id)));
   try { $("rtFone").value = localStorage.getItem("aforja-entregador") || ""; $("rtVolta").checked = localStorage.getItem("aforja-rota-volta") === "1"; } catch (e) {}
   desenharSelecaoRota();
   $("rtOv").hidden = false;
   calcularRota();
 }
 function desenharSelecaoRota() {
-  const lista = entregasParaRota().sort((a, b) => a.id - b.id);
+  const lista = entregasParaRota().sort((a, b) => (a.extra ? 1e15 + a.criado : a.id) - (b.extra ? 1e15 + b.criado : b.id));
   const nomeSt = { recebido: "novo", em_preparo: "em preparo", saiu_entrega: "já saiu" };
   $("rtSel").innerHTML = lista.length ? lista.map((p) => {
     const temLoc = p.latitude != null && p.longitude != null;
     const end = String(p.endereco || "").split(" — ").slice(0, 2).join(" · ");
-    return `<label class="rt-item${temLoc ? "" : " sem-loc"}"><input type="checkbox" data-rt="${p.id}" ${rtSelecionados.has(p.id) ? "checked" : ""} ${temLoc ? "" : "disabled"}>
-      <span><b>nº ${p.id}</b> <span class="rt-st${p.status === "saiu_entrega" ? " saiu" : ""}">${nomeSt[p.status] || p.status}</span>
+    const etiqueta = p.extra ? `<b>Pedido de app</b> <span class="rt-app ${p.app === "99Food" ? "n99" : p.app === "iFood" ? "" : "out"}">${esc(p.app)}</span>`
+      : `<b>nº ${p.id}</b> <span class="rt-st${p.status === "saiu_entrega" ? " saiu" : ""}">${nomeSt[p.status] || p.status}</span>`;
+    return `<label class="rt-item${temLoc ? "" : " sem-loc"}"><input type="checkbox" data-rt="${p.id}" ${rtSelecionados.has(String(p.id)) ? "checked" : ""} ${temLoc ? "" : "disabled"}>
+      <span style="flex:1">${etiqueta}${p.extra ? `<button type="button" class="rt-tirar" data-tirar="${p.id}" aria-label="Tirar da lista" style="float:right">×</button>` : ""}
       <small>${esc((p.clientes || {}).nome || "")} · ${esc(end)}</small>${temLoc ? "" : `<small style="color:var(--erro)">Sem localização: combine o endereço com o entregador</small>`}</span></label>`;
   }).join("") : `<p class="vazio">Nenhum pedido de entrega aberto agora.</p>`;
 }
 $("rtSel").addEventListener("change", (e) => {
   const c = e.target.closest("[data-rt]"); if (!c) return;
-  const id = Number(c.dataset.rt); c.checked ? rtSelecionados.add(id) : rtSelecionados.delete(id);
+  const id = c.dataset.rt; c.checked ? rtSelecionados.add(id) : rtSelecionados.delete(id);
   calcularRota();
+});
+$("rtSel").addEventListener("click", (e) => {
+  const t = e.target.closest("[data-tirar]"); if (!t) return;
+  e.preventDefault();
+  gravarExtras(lerExtras().filter((x) => x.id !== t.dataset.tirar)); rtSelecionados.delete(t.dataset.tirar);
+  desenharSelecaoRota(); calcularRota();
 });
 $("rtVolta").addEventListener("change", () => { try { localStorage.setItem("aforja-rota-volta", $("rtVolta").checked ? "1" : "0"); } catch (e) {} calcularRota(); });
 $("rtFone").addEventListener("change", () => { try { localStorage.setItem("aforja-entregador", $("rtFone").value.trim()); } catch (e) {} calcularRota(); });
@@ -1935,7 +2015,7 @@ function linkMapa(paradas, loja, volta) {
 }
 async function calcularRota() {
   const loja = lojaRota(), volta = $("rtVolta").checked;
-  const escolhidos = pedidos.filter((p) => rtSelecionados.has(p.id) && p.latitude != null)
+  const escolhidos = entregasParaRota().filter((p) => rtSelecionados.has(String(p.id)) && p.latitude != null)
     .map((p) => ({ ...p, lat: Number(p.latitude), lng: Number(p.longitude) }));
   rtOrdemAtual = melhorOrdem(escolhidos, loja, volta);
   const km = custoRota(rtOrdemAtual, loja, volta) * FATOR_RUA;
@@ -1949,12 +2029,12 @@ async function calcularRota() {
   let ant = loja, dinheiro = 0;
   const cartoes = rtOrdemAtual.map((p, i) => {
     const trecho = distKm(ant, p) * FATOR_RUA; ant = p;
-    const c = p.clientes || {}, pag = PAG[p.forma_pagamento] || p.forma_pagamento || "";
+    const c = p.clientes || {}, pag = pagTxt(p);
     const troco = p.forma_pagamento === "dinheiro" && p.troco_para ? ` · troco p/ ${brl(p.troco_para)} (levar ${brl(p.troco_para - p.total)})` : "";
     if (p.forma_pagamento === "dinheiro") dinheiro += Number(p.total) || 0;
-    return `<div class="rt-parada"><span class="rt-n">${i + 1}</span><div><b>nº ${p.id} · ${esc(c.nome || "")}</b>
+    return `<div class="rt-parada"><span class="rt-n">${i + 1}</span><div><b>${p.extra ? "" : `nº ${p.id} · `}${esc(c.nome || "")}</b>
       <small>${esc(p.endereco || "")}</small><small>${trecho.toFixed(1).replace(".", ",")} km do ponto anterior · ${esc(fone(c.telefone))}</small>
-      <small class="${p.forma_pagamento === "dinheiro" ? "din" : ""}">${pag}: ${brl(p.total)}${troco}</small></div></div>`;
+      <small class="${p.forma_pagamento === "dinheiro" ? "din" : ""}">${pag}${p.total ? ": " + brl(p.total) : ""}${troco}</small></div></div>`;
   });
   $("rtOrdem").innerHTML = rtOrdemAtual.length
     ? `<div class="rt-parada"><span class="rt-n loja">🍕</span><div><b>Saída: A Forja Pizzaria</b><small>Av. Rui Barbosa, 781 - Jardim Marista</small></div></div>` + cartoes.join("")
@@ -1969,8 +2049,11 @@ async function calcularRota() {
   links.forEach((l, i) => linhas.push(`🗺️ Rota no mapa${links.length > 1 ? ` (parte ${i + 1})` : ""}: ${l}`));
   rtOrdemAtual.forEach((p, i) => {
     const c = p.clientes || {};
-    linhas.push("", `*${i + 1}) Pedido nº ${p.id} — ${c.nome || ""}*`, `📞 ${fone(c.telefone)}`, `🏠 ${p.endereco || ""}`, `📍 https://maps.google.com/?q=${p.lat},${p.lng}`);
-    linhas.push(`💰 ${PAG[p.forma_pagamento] || ""}: ${brl(p.total)}${p.forma_pagamento === "dinheiro" && p.troco_para ? ` · troco p/ ${brl(p.troco_para)} (levar ${brl(p.troco_para - p.total)})` : ""}`);
+    linhas.push("", `*${i + 1}) ${p.extra ? "" : `Pedido nº ${p.id} — `}${c.nome || ""}*`);
+    if (c.telefone) linhas.push(`📞 ${fone(c.telefone)}`);
+    if (p.endereco) linhas.push(`🏠 ${p.endereco}`);
+    linhas.push(`📍 https://maps.google.com/?q=${p.lat},${p.lng}`);
+    linhas.push(`💰 ${pagTxt(p)}${p.total ? ": " + brl(p.total) : ""}${p.forma_pagamento === "dinheiro" && p.troco_para ? ` · troco p/ ${brl(p.troco_para)} (levar ${brl(p.troco_para - p.total)})` : ""}`);
     if (p.observacoes) linhas.push(`📝 ${p.observacoes}`);
   });
   if (dinheiro) linhas.push("", `💵 Total a receber em dinheiro: ${brl(dinheiro)}`);
@@ -1993,7 +2076,7 @@ async function calcularRota() {
   const caminho = [[loja.lat, loja.lng]];
   rtOrdemAtual.forEach((p, i) => {
     caminho.push([p.lat, p.lng]);
-    L.marker([p.lat, p.lng], { icon: pino(i + 1) }).bindTooltip(`${i + 1}) nº ${p.id} · ${esc((p.clientes || {}).nome || "")}`).addTo(rtCamada);
+    L.marker([p.lat, p.lng], { icon: pino(i + 1) }).bindTooltip(`${i + 1}) ${p.extra ? "" : "nº " + p.id + " · "}${esc((p.clientes || {}).nome || "")}`).addTo(rtCamada);
   });
   if (volta && rtOrdemAtual.length) caminho.push([loja.lat, loja.lng]);
   const cor = getComputedStyle(document.documentElement).getPropertyValue("--ember").trim() || "#C43E0C";
@@ -2004,14 +2087,18 @@ async function calcularRota() {
   }, 60);
 }
 async function marcarRotaSaiu() {
-  const ids = rtOrdemAtual.filter((p) => p.status !== "saiu_entrega").map((p) => p.id);
-  if (!ids.length) return;
+  const daRota = rtOrdemAtual.filter((p) => p.status !== "saiu_entrega");
+  if (!daRota.length) return;
   $("rtSaiu").disabled = true;
-  try { for (const id of ids) await api("status", "POST", { id, status: "saiu_entrega" }); await carregar(false); }
+  const ids = daRota.filter((p) => !p.extra).map((p) => p.id), extrasIds = daRota.filter((p) => p.extra).map((p) => p.id);
+  try { for (const id of ids) await api("status", "POST", { id, status: "saiu_entrega" }); if (ids.length) await carregar(false); }
   catch (e) { alert("Não foi possível mudar o status: " + e.message); }
-  rtOrdemAtual.forEach((p) => { if (ids.includes(p.id)) { p.status = "saiu_entrega"; rtSelecionados.delete(p.id); } });
-  desenharSelecaoRota(); $("rtSaiu").disabled = true;
-  toast(`Rota enviada · ${ids.length} pedido${ids.length > 1 ? "s" : ""} marcado${ids.length > 1 ? "s" : ""} como <b style="color:#FFB18C">Saiu para entrega</b>`);
+  // entregas do iFood / 99Food saem da lista (o status delas é controlado no app de origem)
+  if (extrasIds.length) gravarExtras(lerExtras().filter((x) => !extrasIds.includes(x.id)));
+  daRota.forEach((p) => { p.status = "saiu_entrega"; rtSelecionados.delete(String(p.id)); });
+  desenharSelecaoRota();
+  const n = daRota.length;
+  toast(`Rota enviada · ${n} entrega${n > 1 ? "s" : ""} marcada${n > 1 ? "s" : ""} como <b style="color:#FFB18C">Saiu para entrega</b>`);
 }
 $("rtSaiu").addEventListener("click", marcarRotaSaiu);
 // Enviar ao entregador já marca como "Saiu para entrega" (o WhatsApp abre normalmente em outra aba)
