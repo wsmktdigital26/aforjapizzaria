@@ -522,11 +522,18 @@ function desenharHorarioRodape(){
   const partes = [1,2,3,4,5,6,0].filter((d) => HORARIOS[d]).map((d) => `${nomes[d]} ${HORARIOS[d][0]} às ${HORARIOS[d][1]}`);
   $("horarioRodape").innerHTML = "<b>Horário:</b> " + esc(partes.join(" · ") || "a confirmar") + ".";
 }
+let LICENCA_OFF = false;   // assinatura do sistema vencida: só consulta
+const MSG_INDISPONIVEL = "Pedidos online indisponíveis no momento. Para pedir, chame a A Forja no WhatsApp: (62) 99127-4120.";
 function atualizarBloqueio(){
   const semModal = typeof MODAL !== "undefined" && !MODAL.entrega && !MODAL.retirada;
   const fechado = !sit.aberto && !ACEITA_FORA;
-  $("enviar").disabled = semModal || fechado;
-  $("enviar").textContent = fechado ? `Fechado agora · abre ${sit.abre}` : "Enviar pedido pelo WhatsApp";
+  $("enviar").disabled = semModal || fechado || LICENCA_OFF;
+  $("enviar").textContent = LICENCA_OFF ? "Pedidos online indisponíveis" : fechado ? `Fechado agora · abre ${sit.abre}` : "Enviar pedido pelo WhatsApp";
+  if (LICENCA_OFF) {
+    $("statusTxt").textContent = "Pedidos online indisponíveis";
+    $("status").classList.add("fechado");
+    $("scAvisoHorario").innerHTML = `<div class="aviso alerta">${MSG_INDISPONIVEL} <a href="https://wa.me/5562991274120" target="_blank" rel="noopener" style="color:inherit;font-weight:700">Abrir WhatsApp da loja</a></div>`;
+  }
 }
 mostrarSituacao();
 
@@ -593,6 +600,7 @@ async function carregarCardapio(){
       d.horarios.forEach((h) => { if (h.aberto && h.abre && h.fecha) HORARIOS[h.dia_semana] = [h.abre, h.fecha]; });
     }
     ACEITA_FORA = d.aceitar_fora_horario === true;
+    LICENCA_OFF = d.licenca_ativa === false;
     CUPOM_POPUP = d.cupom_popup && d.cupom_popup.codigo ? d.cupom_popup : null;
     if (CUPOM_POPUP && !cupomInfo && lerLS("aforja-cupom-pend") === CUPOM_POPUP.codigo) setTimeout(() => aplicarCupomDireto(CUPOM_POPUP), 0);
     mostrarSituacao(); desenharHorarioRodape(); desenharCombos(); atualizarBloqueio();
@@ -914,6 +922,12 @@ $("enviar").addEventListener("click", async () => {
     if (r.ok) {
       numero = dados.id; codigo = dados.codigo;
       if (tipo === "entrega" && dados.taxa > 0) taxaInfo = { taxa: dados.taxa, distancia: dados.distancia };
+    }
+    else if (r.status === 403){
+      // Sistema recusou (assinatura vencida ou loja fechada): não envia por fora
+      if (/indispon/i.test(dados.erro || "")) { LICENCA_OFF = true; atualizarBloqueio(); }
+      $("ePag").textContent = dados.erro || MSG_INDISPONIVEL;
+      botao.disabled = LICENCA_OFF; if (!LICENCA_OFF) botao.textContent = "Enviar pedido pelo WhatsApp"; return;
     }
     else if (r.status === 400){
       $(/localiza|endere|bairro|rua|entregamos/i.test(dados.erro || "") ? "eEnd" : "ePag").textContent = dados.erro || "Confira os dados do pedido.";

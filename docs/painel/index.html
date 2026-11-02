@@ -93,6 +93,9 @@ details.final summary{cursor:pointer;color:var(--muted);font-size:14px;margin-bo
 .novo-cupom{display:grid;grid-template-columns:1fr 1fr}
 .novo-cupom .btn{grid-column:1/-1}
 /* ---------- Assinatura ---------- */
+.faixa-vencida{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between;background:var(--erro);color:#fff;padding:10px 20px;font-size:14.5px}
+.faixa-vencida[hidden]{display:none}
+.faixa-vencida .btn{background:#fff;color:var(--erro);border-color:#fff;font-weight:700;text-decoration:none}
 .chip-ass{border:1px solid var(--line);border-radius:999px;padding:4px 11px;font-size:13px;font-weight:700;background:var(--surface);color:var(--muted)}
 .chip-ass.perto{background:var(--gold-soft);border-color:var(--gold-soft);color:var(--gold)}
 .chip-ass.vencida{background:var(--erro);border-color:var(--erro);color:#fff}
@@ -219,6 +222,44 @@ details.final summary{cursor:pointer;color:var(--muted);font-size:14px;margin-bo
 @media (max-width:1150px){.ac-21b{grid-template-columns:1fr}}
 .ac-svg text{fill:var(--muted);font:11px "Nunito Sans",sans-serif}
 .ac-svg text.v{fill:var(--text);font-weight:700}
+/* ---------- Rota de entrega ---------- */
+.btn-rota{background:var(--ok);border-color:var(--ok);color:#fff}
+.rt-ov{position:fixed;inset:0;z-index:52;background:rgba(23,16,12,.55);display:flex;align-items:center;justify-content:center;padding:14px}
+.rt-ov[hidden]{display:none}
+.rt{width:100%;max-width:1180px;max-height:96vh;overflow:auto;background:var(--surface);color:var(--text);border-radius:18px;padding:16px 18px 18px;box-shadow:0 30px 70px rgba(0,0,0,.35)}
+.rt-topo{display:flex;align-items:center;gap:12px}
+.rt-topo h2{margin:0;font-size:24px}
+.rt-topo .lixo{margin-left:auto}
+.rt-corpo{display:grid;grid-template-columns:330px 1fr 360px;gap:14px;margin-top:12px}
+@media (max-width:1100px){.rt-corpo{grid-template-columns:1fr}}
+.rt-col h3{font-size:14px;margin:0 0 8px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)}
+.rt-sel{display:grid;gap:8px;max-height:52vh;overflow:auto;padding-right:4px}
+.rt-item{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-size:13.5px;cursor:pointer;background:var(--surface)}
+.rt-item input{margin-top:3px;accent-color:var(--ember);width:17px;height:17px;flex:none}
+.rt-item b{font-size:14.5px}
+.rt-item small{display:block;color:var(--muted)}
+.rt-item.sem-loc{opacity:.6;cursor:not-allowed}
+.rt-st{font-size:11px;font-weight:700;border-radius:999px;padding:1px 7px;margin-left:4px;background:var(--gold-soft);color:var(--gold)}
+.rt-st.saiu{background:var(--ok-soft);color:var(--ok)}
+.rt-opc{display:grid;gap:8px;margin-top:10px;font-size:13.5px}
+.rt-opc label{display:flex;gap:8px;align-items:center}
+.rt-opc input[type=tel]{flex:1;border:1px solid var(--line);border-radius:8px;padding:6px 8px;background:var(--bg);min-width:0}
+.rt-mapa{height:56vh;min-height:320px;border-radius:12px;overflow:hidden;border:1px solid var(--line);background:var(--bg)}
+.rt-resumo{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+.rt-resumo div{background:var(--bg);border-radius:10px;padding:8px 10px}
+.rt-resumo small{display:block;font-size:11.5px;color:var(--muted);font-weight:700}
+.rt-resumo b{font-family:Oswald,"Arial Narrow",sans-serif;font-size:20px}
+.rt-ordem{display:grid;gap:8px;max-height:36vh;overflow:auto;padding-right:4px}
+.rt-parada{display:flex;gap:10px;border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-size:13.5px}
+.rt-n{flex:none;width:28px;height:28px;border-radius:50%;background:var(--ember);color:var(--on-ember);display:grid;place-items:center;font-weight:700}
+.rt-n.loja{background:var(--text);color:var(--bg)}
+.rt-parada small{display:block;color:var(--muted)}
+.rt-parada .din{color:var(--gold);font-weight:700}
+.rt-acoes{display:grid;gap:8px;margin-top:12px}
+.rt-acoes .btn{text-align:center;text-decoration:none;padding:10px 12px}
+.rt-aviso{font-size:12.5px;color:var(--muted);margin-top:6px}
+.rt-pino{width:28px;height:28px;border-radius:50%;background:var(--ember);color:#fff;font-weight:700;font-size:14px;display:grid;place-items:center;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35)}
+.rt-pino.loja{background:#2A1A12;font-size:15px}
 .modal-card{grid-column:1/-1}
 .modal-linha{display:flex;flex-wrap:wrap;gap:12px 32px;align-items:center;margin-top:6px}
 .modal-item{display:flex;align-items:center;gap:12px;font-weight:700;font-size:17px}
@@ -266,6 +307,10 @@ details.final summary{cursor:pointer;color:var(--muted);font-size:14px;margin-bo
 </section>
 
 <div id="telaPainel" hidden>
+  <div class="faixa-vencida" id="faixaVencida" hidden role="alert">
+    <span>⛔ <b>Você não está recebendo pedidos novos.</b> <span id="faixaVencidaTxt"></span></span>
+    <a class="btn" id="faixaVencidaWs" target="_blank" rel="noopener">Falar com a WS Solutions</a>
+  </div>
   <div id="faixaDemo" hidden style="background:var(--gold-soft);color:var(--text);padding:8px 20px;font-size:14px;border-bottom:1px solid var(--line)">
     <b>Modo demonstração:</b> os pedidos são fictícios e nada é gravado. Um pedido novo chega sozinho em alguns segundos.
   </div>
@@ -280,6 +325,7 @@ details.final summary{cursor:pointer;color:var(--muted);font-size:14px;margin-bo
     <span class="chip-ass" id="chipAss" hidden></span>
     <span class="alerta-modal" id="modalAlerta" hidden></span>
     <div class="ctrl">
+      <button type="button" class="btn btn-rota" id="abrirRota">🛵 Rota de entrega</button>
       <label>Impressora
         <select id="largura">
           <option value="80">Térmica 80 mm</option>
@@ -438,6 +484,35 @@ details.final summary{cursor:pointer;color:var(--muted);font-size:14px;margin-bo
   </section>
 </div>
 
+<!-- Rota de entrega -->
+<div class="rt-ov" id="rtOv" hidden role="dialog" aria-modal="true" aria-labelledby="rtTit">
+  <div class="rt">
+    <div class="rt-topo"><h2 id="rtTit">🛵 Rota de entrega</h2><span class="estado" id="rtInfo"></span><button type="button" class="lixo" id="rtX" aria-label="Fechar">×</button></div>
+    <div class="rt-corpo">
+      <div class="rt-col">
+        <h3>1. Escolha os pedidos</h3>
+        <div class="rt-sel" id="rtSel"></div>
+        <div class="rt-opc">
+          <label><input type="checkbox" id="rtVolta"> Voltar para a pizzaria no fim</label>
+          <label>WhatsApp do entregador <input type="tel" id="rtFone" placeholder="62 9 9999-9999" inputmode="tel"></label>
+        </div>
+      </div>
+      <div class="rt-col"><h3>2. Melhor caminho</h3><div class="rt-mapa" id="rtMapa"></div></div>
+      <div class="rt-col">
+        <h3>3. Ordem das entregas</h3>
+        <div class="rt-resumo"><div><small>Entregas</small><b id="rtQtd">0</b></div><div><small>Distância</small><b id="rtKm">–</b></div><div><small>Tempo</small><b id="rtMin">–</b></div></div>
+        <div class="rt-ordem" id="rtOrdem"></div>
+        <div class="rt-acoes">
+          <div id="rtMaps"></div>
+          <a class="btn ok" id="rtZap" target="_blank" rel="noopener">📲 Enviar rota para o entregador</a>
+          <button type="button" class="btn" id="rtSaiu">Só marcar como "Saiu para entrega" (sem enviar)</button>
+          <p class="rt-aviso">Ao enviar a rota, os pedidos já mudam para "Saiu para entrega". A ordem é calculada pela distância; o Google Maps do entregador mostra as ruas e o trânsito.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Aviso de vencimento da assinatura -->
 <div class="as-ov" id="asOv" hidden role="dialog" aria-modal="true" aria-labelledby="asTitulo">
   <div class="as" id="asCaixa">
@@ -496,6 +571,7 @@ const API = "https://bgwdnwzzltbekhfzcawm.supabase.co/functions/v1/cardapio-api"
 // WhatsApp da WS Solutions para renovação (só números: 55 + DDD + número). Vazio = o cliente escolhe o contato.
 const WS_WHATSAPP = "5562995490611";
 const AVISAR_DIAS_ANTES = 5;
+const AVISO_A_CADA_MIN = 60;   // no dia do vencimento (e depois de vencido), o aviso volta a cada 60 minutos
 const $ = (id) => document.getElementById(id);
 const brl = (v) => "R$ " + Number(v || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -513,7 +589,7 @@ let demo = false, demoDados = [];
 function criarDemo() {
   const min = (m) => new Date(Date.now() - m * 60000).toISOString();
   demoDados = [
-    { id: 103, codigo: "demo103", criado_em: min(4), status: "recebido", tipo_entrega: "entrega",
+    { id: 103, codigo: "demo103", criado_em: min(4), status: "recebido", tipo_entrega: "entrega", latitude: -16.6402, longitude: -49.4168,
       endereco: "Rua 5, nº 120 — Jardim Marista — Ref.: casa de muro azul", forma_pagamento: "dinheiro", troco_para: 100,
       subtotal: 55.98, desconto: 4.00, cupom: "PIZZA10", taxa_entrega: 0, total: 51.98, origem: "site", observacoes: "Interfone quebrado, ligar ao chegar",
       clientes: { nome: "Mariana Souza", telefone: "5562900000001" },
@@ -524,7 +600,19 @@ function criarDemo() {
       forma_pagamento: "pix", troco_para: null, subtotal: 69.98, taxa_entrega: 0, total: 69.98, origem: "site", observacoes: null,
       clientes: { nome: "Carlos Lima", telefone: "5562900000002" },
       itens_pedido: [{ descricao: "Pizza Grande Portuguesa", quantidade: 2, preco_unitario: 34.99, observacao: null }] },
-    { id: 101, codigo: "demo101", criado_em: min(32), status: "saiu_entrega", tipo_entrega: "entrega",
+    { id: 105, codigo: "demo105", criado_em: min(22), status: "em_preparo", tipo_entrega: "entrega", latitude: -16.6455, longitude: -49.4290,
+      endereco: "Rua das Flores, Qd 4, Lt 10 — Residencial Maria Monteiro", forma_pagamento: "dinheiro", troco_para: 50, subtotal: 39.99, taxa_entrega: 6, total: 45.99, origem: "site", observacoes: "Portão verde",
+      clientes: { nome: "Rafael Torres", telefone: "5562900000006" }, itens_pedido: [{ descricao: "Pizza Grande Calabresa / Frango", quantidade: 1, preco_unitario: 39.99, observacao: null }] },
+    { id: 106, codigo: "demo106", criado_em: min(20), status: "em_preparo", tipo_entrega: "entrega", latitude: -16.6318, longitude: -49.4262,
+      endereco: "Av. Brasil, nº 900 — Jardim Primavera", forma_pagamento: "pix", troco_para: null, subtotal: 69.98, taxa_entrega: 6, total: 75.98, origem: "site", observacoes: null,
+      clientes: { nome: "Juliana Costa", telefone: "5562900000007" }, itens_pedido: [{ descricao: "Pizza Grande Portuguesa", quantidade: 2, preco_unitario: 34.99, observacao: null }] },
+    { id: 107, codigo: "demo107", criado_em: min(18), status: "em_preparo", tipo_entrega: "entrega", latitude: -16.6438, longitude: -49.4140,
+      endereco: "Rua 20, nº 33 — Setor Cristina", forma_pagamento: "cartao", troco_para: null, subtotal: 34.99, taxa_entrega: 5, total: 39.99, origem: "site", observacoes: null,
+      clientes: { nome: "Bruno Alves", telefone: "5562900000008" }, itens_pedido: [{ descricao: "Pizza Grande Bacon", quantidade: 1, preco_unitario: 34.99, observacao: null }] },
+    { id: 108, codigo: "demo108", criado_em: min(16), status: "em_preparo", tipo_entrega: "entrega", latitude: -16.6262, longitude: -49.4185,
+      endereco: "Rua 7, nº 210 — Setor Barcelos", forma_pagamento: "dinheiro", troco_para: 100, subtotal: 74.98, taxa_entrega: 6, total: 80.98, origem: "site", observacoes: "Ligar ao chegar",
+      clientes: { nome: "Carla Mendes", telefone: "5562900000009" }, itens_pedido: [{ descricao: "Pizza Grande Frango com Catupiry", quantidade: 2, preco_unitario: 34.99, observacao: null }] },
+    { id: 101, codigo: "demo101", criado_em: min(32), status: "saiu_entrega", tipo_entrega: "entrega", latitude: -16.6295, longitude: -49.4095,
       endereco: "Av. Brasil, nº 45 — Jardim América", forma_pagamento: "cartao", troco_para: null,
       subtotal: 40.98, taxa_entrega: 7, total: 47.98, origem: "site", observacoes: null,
       clientes: { nome: "Paula Mendes", telefone: "5562900000003" },
@@ -1178,21 +1266,32 @@ const SEMANA = ["domingo","segunda","terça","quarta","quinta","sexta","sábado"
 function verAssinatura(ass) {
   const chip = $("chipAss");
   const ativoAte = ass && ass.ativo_ate, teste = !!(ass && ass.em_teste);   // teste = período de teste grátis
-  if (!ativoAte) { chip.hidden = true; return; }
+  if (!ativoAte) { chip.hidden = true; $("faixaVencida").hidden = true; return; }
   const fim = new Date(ativoAte);
-  if (isNaN(fim)) { chip.hidden = true; return; }
+  if (isNaN(fim)) { chip.hidden = true; $("faixaVencida").hidden = true; return; }
   const sp = (d, o) => d.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", ...o });
   const dataCurta = sp(fim, { day: "2-digit", month: "2-digit" });
   const ms = fim - Date.now(), dias = Math.ceil(ms / 86400000), vencida = ms <= 0;
   chip.hidden = false;
+  // Faixa fixa (não fecha) enquanto estiver vencida
+  $("faixaVencida").hidden = !vencida;
+  if (vencida) {
+    $("faixaVencidaTxt").textContent = `${teste ? "O período de teste terminou" : "A assinatura venceu"} em ${dataCurta}: o cardápio online e o robô do WhatsApp estão pausados até a renovação.`;
+    const msgF = `Olá, WS Solutions! Sou da A Forja Pizzaria e quero ${teste ? "ativar o plano" : "renovar a assinatura"} do sistema (pedidos online pausados desde ${dataCurta}).`;
+    $("faixaVencidaWs").href = `https://wa.me/${WS_WHATSAPP.replace(/\D/g, "")}?text=${encodeURIComponent(msgF)}`;
+  }
   chip.textContent = teste ? (vencida ? `● Teste encerrado em ${dataCurta}` : `● Teste grátis até ${dataCurta}`)
     : (vencida ? `● Assinatura vencida em ${dataCurta}` : `● Assinatura até ${dataCurta}`);
   chip.className = "chip-ass" + (vencida ? " vencida" : teste || dias <= AVISAR_DIAS_ANTES ? " perto" : "");
   if (!vencida && dias > AVISAR_DIAS_ANTES) return;
-  // Mostra 1x por dia (vencida: 1x a cada vez que o painel abre)
-  const chave = "aforja-aviso-ass-" + sp(new Date(), { year: "numeric", month: "2-digit", day: "2-digit" });
-  if (verAssinatura.mostrado) return;
-  if (!vencida) { try { if (localStorage.getItem(chave)) return; } catch (e) {} }
+  // Frequência: nos dias anteriores, 1x por dia; no DIA do vencimento e depois de vencido, a cada 1 hora
+  const chave = "aforja-aviso-ass-fechado";
+  if (!$("asOv").hidden) return;                                   // já está na tela
+  let fechadoEm = 0; try { fechadoEm = Number(localStorage.getItem(chave)) || 0; } catch (e) {}
+  const diaBR = (t) => new Date(t - 3 * 3600000).toISOString().slice(0, 10);   // data em Brasília
+  const ultimoDia = vencida || diaBR(fim.getTime()) <= diaBR(Date.now());
+  if (ultimoDia) { if (Date.now() - fechadoEm < AVISO_A_CADA_MIN * 60000) return; }   // fechado há menos de 1 hora
+  else if (fechadoEm && diaBR(fechadoEm) === diaBR(Date.now())) return;                // já viu hoje
   verAssinatura.mostrado = true;
   const dataLonga = sp(fim, { day: "2-digit", month: "2-digit", year: "numeric" });
   // dias pelo calendário de Brasília (hoje / amanhã / em N dias), para bater com o cronômetro
@@ -1243,7 +1342,7 @@ function verAssinatura(ass) {
   };
   if (!vencida) { tique(); verAssinatura.timer = setInterval(tique, 1000); }
   $("asOv").hidden = false;
-  $("asX").onclick = () => { $("asOv").hidden = true; clearInterval(verAssinatura.timer); if (!vencida) { try { localStorage.setItem(chave, "1"); } catch (e) {} } };
+  $("asX").onclick = () => { $("asOv").hidden = true; clearInterval(verAssinatura.timer); try { localStorage.setItem(chave, String(Date.now())); } catch (e) {} };
 }
 $("asWs").addEventListener("click", () => { $("asX").click(); });
 
@@ -1739,6 +1838,187 @@ function relatorioDemo(acao) {
   demoRel = demoRel || gerarDemoRel();
   return { loja: { lat: -16.637869, lng: -49.4196 }, pedidos: JSON.parse(JSON.stringify(demoRel.filter((p) => { const t = Date.parse(p.criado_em); return t >= de && t < ate; }))) };
 }
+
+/* =========================================================
+   ROTA DE ENTREGA: escolhe os pedidos, calcula a melhor ordem
+   (a partir da pizzaria) e manda para o Google Maps / WhatsApp.
+   ========================================================= */
+const LOJA_PADRAO = { lat: -16.637869, lng: -49.4196 };      // Av. Rui Barbosa, 781 - Jardim Marista
+const FATOR_RUA = 1.3, VEL_KMH = 25, MIN_PARADA = 3;          // estimativas de distância e tempo
+let rtSelecionados = new Set(), rtMapa = null, rtCamada = null, rtOrdemAtual = [];
+const lojaRota = () => (typeof acLoja !== "undefined" && acLoja) ? acLoja : LOJA_PADRAO;
+
+function distKm(a, b) {
+  const R = 6371, rad = (g) => g * Math.PI / 180;
+  const dLat = rad(b.lat - a.lat), dLng = rad(b.lng - a.lng);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+function custoRota(ordem, loja, volta) {
+  let d = 0, atual = loja;
+  ordem.forEach((p) => { d += distKm(atual, p); atual = p; });
+  if (volta && ordem.length) d += distKm(atual, loja);
+  return d;
+}
+/* Até 8 entregas: testa todas as ordens possíveis (resultado exato).
+   Acima disso: vizinho mais próximo + melhoria 2-opt. */
+function melhorOrdem(pontos, loja, volta) {
+  if (pontos.length <= 1) return pontos.slice();
+  if (pontos.length <= 8) {
+    let melhor = null, menor = Infinity;
+    const usar = (resto, caminho) => {
+      if (!resto.length) { const c = custoRota(caminho, loja, volta); if (c < menor) { menor = c; melhor = caminho; } return; }
+      resto.forEach((p, i) => usar(resto.slice(0, i).concat(resto.slice(i + 1)), caminho.concat([p])));
+    };
+    usar(pontos, []);
+    return melhor;
+  }
+  const resto = pontos.slice(), ordem = []; let atual = loja;
+  while (resto.length) {
+    let k = 0; resto.forEach((p, i) => { if (distKm(atual, p) < distKm(atual, resto[k])) k = i; });
+    atual = resto.splice(k, 1)[0]; ordem.push(atual);
+  }
+  let melhorou = true;
+  while (melhorou) {
+    melhorou = false;
+    for (let i = 0; i < ordem.length - 1; i++) for (let j = i + 1; j < ordem.length; j++) {
+      const nova = ordem.slice(0, i).concat(ordem.slice(i, j + 1).reverse(), ordem.slice(j + 1));
+      if (custoRota(nova, loja, volta) + 1e-9 < custoRota(ordem, loja, volta)) { ordem.splice(0, ordem.length, ...nova); melhorou = true; }
+    }
+  }
+  return ordem;
+}
+
+function entregasParaRota() {
+  return pedidos.filter((p) => p.tipo_entrega === "entrega" && ["recebido", "em_preparo", "saiu_entrega"].includes(p.status));
+}
+function abrirRota() {
+  const lista = entregasParaRota();
+  // Já vem marcado o que está em preparo (é o que vai sair agora)
+  rtSelecionados = new Set(lista.filter((p) => p.status === "em_preparo" && p.latitude != null).map((p) => p.id));
+  try { $("rtFone").value = localStorage.getItem("aforja-entregador") || ""; $("rtVolta").checked = localStorage.getItem("aforja-rota-volta") === "1"; } catch (e) {}
+  desenharSelecaoRota();
+  $("rtOv").hidden = false;
+  calcularRota();
+}
+function desenharSelecaoRota() {
+  const lista = entregasParaRota().sort((a, b) => a.id - b.id);
+  const nomeSt = { recebido: "novo", em_preparo: "em preparo", saiu_entrega: "já saiu" };
+  $("rtSel").innerHTML = lista.length ? lista.map((p) => {
+    const temLoc = p.latitude != null && p.longitude != null;
+    const end = String(p.endereco || "").split(" — ").slice(0, 2).join(" · ");
+    return `<label class="rt-item${temLoc ? "" : " sem-loc"}"><input type="checkbox" data-rt="${p.id}" ${rtSelecionados.has(p.id) ? "checked" : ""} ${temLoc ? "" : "disabled"}>
+      <span><b>nº ${p.id}</b> <span class="rt-st${p.status === "saiu_entrega" ? " saiu" : ""}">${nomeSt[p.status] || p.status}</span>
+      <small>${esc((p.clientes || {}).nome || "")} · ${esc(end)}</small>${temLoc ? "" : `<small style="color:var(--erro)">Sem localização: combine o endereço com o entregador</small>`}</span></label>`;
+  }).join("") : `<p class="vazio">Nenhum pedido de entrega aberto agora.</p>`;
+}
+$("rtSel").addEventListener("change", (e) => {
+  const c = e.target.closest("[data-rt]"); if (!c) return;
+  const id = Number(c.dataset.rt); c.checked ? rtSelecionados.add(id) : rtSelecionados.delete(id);
+  calcularRota();
+});
+$("rtVolta").addEventListener("change", () => { try { localStorage.setItem("aforja-rota-volta", $("rtVolta").checked ? "1" : "0"); } catch (e) {} calcularRota(); });
+$("rtFone").addEventListener("change", () => { try { localStorage.setItem("aforja-entregador", $("rtFone").value.trim()); } catch (e) {} calcularRota(); });
+
+function linkMapa(paradas, loja, volta) {
+  // Google Maps aceita até 9 paradas no meio do caminho: divide em partes se precisar
+  const ll = (p) => `${p.lat},${p.lng}`, partes = [];
+  let origem = loja, i = 0;
+  while (i < paradas.length) {
+    const fatia = paradas.slice(i, i + 10); i += fatia.length;
+    const fim = i >= paradas.length && volta ? loja : fatia[fatia.length - 1];
+    const meio = (i >= paradas.length && volta) ? fatia : fatia.slice(0, -1);
+    partes.push(`https://www.google.com/maps/dir/?api=1&origin=${ll(origem)}&destination=${ll(fim)}${meio.length ? "&waypoints=" + meio.map(ll).join("|") : ""}&travelmode=driving`);
+    origem = fatia[fatia.length - 1];
+  }
+  return partes;
+}
+async function calcularRota() {
+  const loja = lojaRota(), volta = $("rtVolta").checked;
+  const escolhidos = pedidos.filter((p) => rtSelecionados.has(p.id) && p.latitude != null)
+    .map((p) => ({ ...p, lat: Number(p.latitude), lng: Number(p.longitude) }));
+  rtOrdemAtual = melhorOrdem(escolhidos, loja, volta);
+  const km = custoRota(rtOrdemAtual, loja, volta) * FATOR_RUA;
+  const min = Math.round(km / VEL_KMH * 60 + rtOrdemAtual.length * MIN_PARADA);
+  $("rtQtd").textContent = rtOrdemAtual.length;
+  $("rtKm").textContent = rtOrdemAtual.length ? km.toFixed(1).replace(".", ",") + " km" : "–";
+  $("rtMin").textContent = rtOrdemAtual.length ? "~" + min + " min" : "–";
+  $("rtInfo").textContent = rtOrdemAtual.length ? `Saindo da pizzaria${volta ? " e voltando no fim" : ""}` : "Marque os pedidos que vão sair juntos";
+
+  // Lista na ordem
+  let ant = loja, dinheiro = 0;
+  const cartoes = rtOrdemAtual.map((p, i) => {
+    const trecho = distKm(ant, p) * FATOR_RUA; ant = p;
+    const c = p.clientes || {}, pag = PAG[p.forma_pagamento] || p.forma_pagamento || "";
+    const troco = p.forma_pagamento === "dinheiro" && p.troco_para ? ` · troco p/ ${brl(p.troco_para)} (levar ${brl(p.troco_para - p.total)})` : "";
+    if (p.forma_pagamento === "dinheiro") dinheiro += Number(p.total) || 0;
+    return `<div class="rt-parada"><span class="rt-n">${i + 1}</span><div><b>nº ${p.id} · ${esc(c.nome || "")}</b>
+      <small>${esc(p.endereco || "")}</small><small>${trecho.toFixed(1).replace(".", ",")} km do ponto anterior · ${esc(fone(c.telefone))}</small>
+      <small class="${p.forma_pagamento === "dinheiro" ? "din" : ""}">${pag}: ${brl(p.total)}${troco}</small></div></div>`;
+  });
+  $("rtOrdem").innerHTML = rtOrdemAtual.length
+    ? `<div class="rt-parada"><span class="rt-n loja">🍕</span><div><b>Saída: A Forja Pizzaria</b><small>Av. Rui Barbosa, 781 - Jardim Marista</small></div></div>` + cartoes.join("")
+      + (volta ? `<div class="rt-parada"><span class="rt-n loja">🏁</span><div><b>Volta para a pizzaria</b></div></div>` : "")
+      + (dinheiro ? `<p class="rt-aviso">💵 Receber em dinheiro nesta rota: <b>${brl(dinheiro)}</b></p>` : "")
+    : `<p class="vazio">Marque ao lado os pedidos que o entregador vai levar.</p>`;
+
+  // Google Maps e WhatsApp
+  const links = rtOrdemAtual.length ? linkMapa(rtOrdemAtual, loja, volta) : [];
+  $("rtMaps").innerHTML = links.map((l, i) => `<a class="btn" style="display:block" href="${l}" target="_blank" rel="noopener">🗺️ Abrir rota no Google Maps${links.length > 1 ? ` · parte ${i + 1}` : ""}</a>`).join("");
+  const linhas = [`🛵 *Rota de entregas — A Forja Pizzaria*`, `${rtOrdemAtual.length} entrega${rtOrdemAtual.length === 1 ? "" : "s"} · ~${km.toFixed(1).replace(".", ",")} km · ~${min} min`, ""];
+  links.forEach((l, i) => linhas.push(`🗺️ Rota no mapa${links.length > 1 ? ` (parte ${i + 1})` : ""}: ${l}`));
+  rtOrdemAtual.forEach((p, i) => {
+    const c = p.clientes || {};
+    linhas.push("", `*${i + 1}) Pedido nº ${p.id} — ${c.nome || ""}*`, `📞 ${fone(c.telefone)}`, `🏠 ${p.endereco || ""}`, `📍 https://maps.google.com/?q=${p.lat},${p.lng}`);
+    linhas.push(`💰 ${PAG[p.forma_pagamento] || ""}: ${brl(p.total)}${p.forma_pagamento === "dinheiro" && p.troco_para ? ` · troco p/ ${brl(p.troco_para)} (levar ${brl(p.troco_para - p.total)})` : ""}`);
+    if (p.observacoes) linhas.push(`📝 ${p.observacoes}`);
+  });
+  if (dinheiro) linhas.push("", `💵 Total a receber em dinheiro: ${brl(dinheiro)}`);
+  const foneEnt = $("rtFone").value.replace(/\D/g, ""), num = foneEnt ? (foneEnt.startsWith("55") ? foneEnt : "55" + foneEnt) : "";
+  $("rtZap").href = `https://wa.me/${num}?text=${encodeURIComponent(linhas.join("\n"))}`;
+  $("rtZap").style.pointerEvents = rtOrdemAtual.length ? "" : "none";
+  $("rtZap").style.opacity = rtOrdemAtual.length ? "" : ".5";
+  $("rtSaiu").disabled = !rtOrdemAtual.some((p) => p.status !== "saiu_entrega");
+
+  // Mapa
+  try { await carregarLeaflet(); } catch (e) { $("rtMapa").innerHTML = `<p class="vazio">Não foi possível carregar o mapa agora.</p>`; return; }
+  if (!rtMapa) {
+    rtMapa = L.map("rtMapa", { scrollWheelZoom: true });
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© OpenStreetMap" }).addTo(rtMapa);
+    rtCamada = L.layerGroup().addTo(rtMapa);
+  }
+  rtCamada.clearLayers();
+  const pino = (txt, cls) => L.divIcon({ className: "", html: `<div class="rt-pino ${cls || ""}">${txt}</div>`, iconSize: [28, 28], iconAnchor: [14, 14] });
+  L.marker([loja.lat, loja.lng], { icon: pino("🍕", "loja") }).bindTooltip("A Forja Pizzaria").addTo(rtCamada);
+  const caminho = [[loja.lat, loja.lng]];
+  rtOrdemAtual.forEach((p, i) => {
+    caminho.push([p.lat, p.lng]);
+    L.marker([p.lat, p.lng], { icon: pino(i + 1) }).bindTooltip(`${i + 1}) nº ${p.id} · ${esc((p.clientes || {}).nome || "")}`).addTo(rtCamada);
+  });
+  if (volta && rtOrdemAtual.length) caminho.push([loja.lat, loja.lng]);
+  const cor = getComputedStyle(document.documentElement).getPropertyValue("--ember").trim() || "#C43E0C";
+  if (caminho.length > 1) L.polyline(caminho, { color: cor, weight: 4, opacity: .8, dashArray: "8 8" }).addTo(rtCamada);
+  setTimeout(() => {
+    rtMapa.invalidateSize();
+    if (caminho.length > 1) rtMapa.fitBounds(caminho, { padding: [30, 30], maxZoom: 16 }); else rtMapa.setView([loja.lat, loja.lng], 14);
+  }, 60);
+}
+async function marcarRotaSaiu() {
+  const ids = rtOrdemAtual.filter((p) => p.status !== "saiu_entrega").map((p) => p.id);
+  if (!ids.length) return;
+  $("rtSaiu").disabled = true;
+  try { for (const id of ids) await api("status", "POST", { id, status: "saiu_entrega" }); await carregar(false); }
+  catch (e) { alert("Não foi possível mudar o status: " + e.message); }
+  rtOrdemAtual.forEach((p) => { if (ids.includes(p.id)) { p.status = "saiu_entrega"; rtSelecionados.delete(p.id); } });
+  desenharSelecaoRota(); $("rtSaiu").disabled = true;
+  toast(`Rota enviada · ${ids.length} pedido${ids.length > 1 ? "s" : ""} marcado${ids.length > 1 ? "s" : ""} como <b style="color:#FFB18C">Saiu para entrega</b>`);
+}
+$("rtSaiu").addEventListener("click", marcarRotaSaiu);
+// Enviar ao entregador já marca como "Saiu para entrega" (o WhatsApp abre normalmente em outra aba)
+$("rtZap").addEventListener("click", () => { if (rtOrdemAtual.length) setTimeout(marcarRotaSaiu, 50); });
+$("rtX").addEventListener("click", () => { $("rtOv").hidden = true; });
+$("abrirRota").addEventListener("click", abrirRota);
+
 </script>
 </body>
 </html>
